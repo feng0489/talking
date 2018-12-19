@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="__STATIC__/chat/js/axios.js"></script>
+    <script src="__STATIC__/chat/js/vue.js"></script>
+    <script src='__STATIC__/chat/js/jquery.min.js'></script>
+    <title>发送post请求</title>
+    <script>
+        $(function () {
+
+
+            new Vue({
+                el:'#app',
+                data:{
+                    users:{
+                        username:'',
+                        password:''
+                    }
+                },
+                methods:{
+                    sendPsot(){
+                        axios.post('__LOGIN__', {
+                            username: this.users.username,
+                            password: this.users.password,
+                            ac: "login",
+                        })
+                            .then(function (response) {
+                                console.log(response.data)
+                                  var data = response.data
+                                if(data.code == 200){
+                                    window.location.href="__INDEX__";
+                                }else{
+                                    console.log(data)
+                                }
+
+                            })
+                            .catch(function (error) {
+
+                            });
+                    }
+
+                }
+            });
+
+
+        });
+
+
+    </script>
+</head>
+<body>
+<div id="app">
+    <input type="text" :name="users.name" v-model="users.username" placeholder="姓名">
+    <input type="text" :password="users.password" v-model="users.password" placeholder="年龄">
+    <button @click="sendPsot">发送get请求</button>
+</div>
+
+
+
+<!-- endbuild -->
+</body>
+</html>
