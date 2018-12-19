@@ -37,6 +37,11 @@ class Message extends Model
 
             $redis->set($key,$massage,0);
         }
-        return $massage;
+        if(!empty($massage)){
+            return $massage;
+        }else{
+            return "";
+        }
+
     }
 }
