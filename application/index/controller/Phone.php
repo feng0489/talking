@@ -70,7 +70,7 @@ class Phone extends Controller
             Ajax_checkFriends();
 //            sendMSG("ok","200",$data);
         }
-        sendMSG("您所查找的用户不存在","10401");
+        sendMSG("您所查找的用户不存在","10401") ;
     }
 
     /**
