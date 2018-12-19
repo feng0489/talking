@@ -8,7 +8,6 @@
 
 namespace app\index\model;
 
-use think\Cache;
 use think\Model;
 use think\Db;
 
@@ -43,9 +42,7 @@ class Userfriends extends Model
 
     //好友列表
     public function findFriends($uid){
-        $redis = new \think\Cache\Driver\Redis();
         $key = "friends_".$uid;
-        $friends =  $redis->get($key);
         if(empty($friends)){
             //获取好友信息（id,状态，备注，头像）
             $friends = Db::table("userfriends")
@@ -55,7 +52,6 @@ class Userfriends extends Model
                 ->where(array("uid"=>$uid))
                 ->select();
             if(!empty($friends)){
-                $redis->set($key,$friends);
                 return $friends;
             }{
                 return "";
