@@ -6,16 +6,14 @@
  * Time: 10:09
  */
 namespace app\index\model;
+use think\Cache;
 use think\Model;
-use think\Db;
-use think\cache\driver\Redis;
 
 class Message extends Model
 {
     public function getMessage($serder=0,$accepter=0,$group=0){
-        $redis = new Redis();
         $key = $serder."_".$accepter."_".$group;
-        $massage = $redis->get($key);
+        $massage = Cache::get($key);
         if(empty($massage)){
             $where = "m.status=0";
             if($serder>0){
@@ -34,8 +32,7 @@ class Message extends Model
                 ->join('user u','m.accepter= u.id')
                 ->where($where)
                 ->select();
-
-            $redis->set($key,$massage,0);
+            Cache::set($key,$massage,0);
         }
         if(!empty($massage)){
             return $massage;

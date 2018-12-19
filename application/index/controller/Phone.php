@@ -86,7 +86,8 @@ class Phone extends Controller
         }
         $user= new \app\index\model\User();
         $userinfo = $user->login($data);
-
+        $friend= new \app\index\model\Userfriends();
+        $userinfo["friend"] = $friend->findFriends($userinfo["id"]);
         if(!empty($userinfo)){
             sendMSG("ok","200",$userinfo);
             $log = new \app\index\Model\TalkingLog();
@@ -106,7 +107,6 @@ class Phone extends Controller
      * username
      */
     private function Ajax_findUser(){
-
 
         $username = trim(input("username",""));
         $uid = input("uid",0);
@@ -142,11 +142,11 @@ class Phone extends Controller
      */
     private function Ajax_insertFriends(){
         $data=[];
-        $data["uid"] = trim(input("uid",""));
-        $data["fid"] = trim(input("fid",""));
+        $data["uid"] = input("uid",0);
+        $data["fid"] = input("fid",0);
         $data["status"] = trim(input("status",0));
         $data["remark"] = trim(input("remark",""));
-        if(empty($data["uid"])||empty($data["fid"])){
+        if(empty($data["uid"])||empty($data["fid"])||!is_numeric($data["uid"])||!is_numeric($data["fid"])){
             sendMSG("数据错误","10409");
         }
 
@@ -177,8 +177,8 @@ class Phone extends Controller
      * uid
      */
     private function Ajax_findFriends(){
-        $uid = trim(input("uid",""));
-        if(empty($uid)){
+        $uid = input("uid",0);
+        if(empty($uid) || !is_numeric($uid)){
             sendMSG("数据错误","10410");
         }
         $friends= new \app\index\model\Userfriends();

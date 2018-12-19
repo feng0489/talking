@@ -8,8 +8,10 @@
 
 namespace app\index\model;
 
+use think\Cache;
 use think\Model;
 use think\Db;
+
 class Userfriends extends Model
 {
     //检测uid所对应的好友列表是否存在fid对象
@@ -40,23 +42,31 @@ class Userfriends extends Model
     }
 
     //好友列表
-    public function findFriends($uid=""){
-        if(empty($uid)){
-            return "";
-        }
-        //获取好友信息（id,状态，备注，头像）
-        $data = Db::table("userfriends")
-            ->field("uf.fid,uf.status,uf.remark,u.photo")
-            ->alias('uf')
-            ->join('user u','uf.fid = u.id ')
-            ->where(array("uid"=>$uid))
-            ->select();
-        if(!empty($data)){
-            return $data;
-        }{
-            return "";
+    public function findFriends($uid){
+        $redis = new \think\Cache\Driver\Redis();
+        $key = "friends_".$uid;
+        $friends =  $redis->get($key);
+        if(empty($friends)){
+            //获取好友信息（id,状态，备注，头像）
+            $friends = Db::table("userfriends")
+                ->field("uf.fid,uf.status,uf.remark,u.username,u.online,u.status,u.photo")
+                ->alias('uf')
+                ->join('user u','uf.fid = u.id ')
+                ->where(array("uid"=>$uid))
+                ->select();
+            if(!empty($friends)){
+                $redis->set($key,$friends);
+                return $friends;
+            }{
+                return "";
+            }
         }
 
+        if(!empty($friends)){
+            return $friends;
+        }else{
+            return "";
+        }
 
     }
 
