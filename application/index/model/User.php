@@ -14,17 +14,16 @@ class User extends Model
     public function  login($data = []){
 
         $user = db("user")->where(array("username"=>$data['username']))->find();
-        $log = new \app\index\Model\TalkingLog();
+
           if(!empty($user)){
               if($user['password'] != md5($data['password'])){
                   return "";
               }
-              $log->addLog("login",$data);
-              unset($user['password']);
+              unset($user["password"]);
               return $user;
           }else{
-               $regit = $this->regit($data);
-              return $regit;
+               //$regit = $this->regit($data);
+              return "";
           }
     }
 
@@ -40,14 +39,22 @@ class User extends Model
         $id = db("user")->insertGetId($user);
         $user['id'] = $id;
         if($id>0){
-            $log = new \app\index\Model\TalkingLog();
-            unset($user['password']);
-            $log->addLog("loginAndregit",$user);
+            unset($user["password"]);
             return $user;
         }else{
             return "";
         }
 
+    }
+
+    public function  findUser($data = []){
+        $user = db("user")->where(array("username"=>$data['username']))->find();
+        if(empty($user)){
+            return "";
+        }else{
+            unset($user["password"]);
+            return $user;
+        }
     }
 
 
