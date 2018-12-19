@@ -67,7 +67,8 @@ class Phone extends Controller
         }
         $data= $user->findUser($username);
         if(!empty($data)){
-            sendMSG("ok","200",$data);
+            Ajax_checkFriends();
+//            sendMSG("ok","200",$data);
         }
         sendMSG("您所查找的用户不存在","10401");
     }
