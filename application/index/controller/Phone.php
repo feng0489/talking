@@ -8,6 +8,7 @@
 
 namespace app\index\controller;
 use think\Controller;
+use \think\Cache\Driver\Redis;
 class Phone extends Controller
 {
 
@@ -53,15 +54,25 @@ class Phone extends Controller
              }
          }
          $user= new \app\index\model\User();
-         $user_data = $user->regit($data);
+         $user_data = $user->findUserByName($data['username']);
          if (!empty($user_data)){
              sendMSG("该用户已经存在","10401");
          }
          $userinfo = $user->regit($data);
          if(!empty($userinfo)){
-             sendMSG("ok","200",$userinfo);
              $log = new \app\index\Model\TalkingLog();
              $log->addLog("regit",$userinfo);
+             $me = [];
+             $me["uid"] = $userinfo["id"];
+             $me["fid"] = $userinfo["id"];
+             $me["status"] = 1;
+             $me["remark"] = "..";
+             $friends= new \app\index\model\Userfriends();
+             $status = $friends->insertFriends($me);
+             if(empty($status)){
+                 sendMSG("未知异常","10400",$userinfo);
+             }
+             sendMSG("ok","200",$userinfo);
          }else{
              sendMSG("系统异常，请联系管理员!","10402");
          }
