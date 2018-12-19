@@ -47,8 +47,18 @@ class User extends Model
 
     }
 
-    public function  findUser($data = []){
-        $user = db("user")->where(array("username"=>$data['username']))->find();
+    public function  findUserByName($username){
+        $user = db("user")->where(array("username"=>$username))->find();
+        if(empty($user)){
+            return "";
+        }else{
+            unset($user["password"]);
+            return $user;
+        }
+    }
+
+    public function findUserByid($id){
+        $user = db("user")->where(array("id"=>$id))->find();
         if(empty($user)){
             return "";
         }else{

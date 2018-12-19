@@ -13,15 +13,21 @@ use think\Db;
 class Userfriends extends Model
 {
     //检测uid所对应的好友列表是否存在fid对象
-    public function find($data=[]){
-        if(empty($data["uid"])||empty($data["fid"])){
-            return false;
+    /**
+     * @param $fid  好友的id
+     * @param $uid  用户的id
+     * @return array|false|\PDOStatement|string|Model
+     * @throws \think\db\exception\DataNotFoundException
+     * @throws \think\db\exception\ModelNotFoundException
+     * @throws \think\exception\DbException
+     */
+    public function findFriend($fid,$uid){
+
+       $data= Db::table("userfriends")->field("status,remark")->where(array("uid"=>$uid,"fid"=>$fid))->find();
+        if(empty($data)){
+            return "";
         }
-       $status= Db::table("userfriends")->field("uid,fid")->where(array("uid"=>$data["uid"],"fid"=>$data["fid"]))->find();
-        if(empty($status)){
-            return false;
-        }
-        return true;
+        return $data;
     }
 
     //添加好友

@@ -21,7 +21,7 @@ class Phone extends Controller
         }
         $func = "Ajax_{$ac}";
         if (!method_exists($this, $func)) {
-            sendMSG("访问的地址不存在","4004");
+            sendMSG("访问的地址不存在","4005");
         }
         $this->$func();
     }
@@ -35,7 +35,7 @@ class Phone extends Controller
          $data['password'] = trim(input("password",""));
          $data['weixin'] = trim(input("weixin",""));
          $data['qq'] = trim(input("qq",""));
-         $data['sex'] = input("sex",0);
+         $data['sex'] = input("sex",0);//0男,1女
          $data['phone'] = trim(input("phone",""));
          $data['ip'] =  getIP();
          if(!empty($data['username'])){
@@ -64,7 +64,7 @@ class Phone extends Controller
              $log = new \app\index\Model\TalkingLog();
              $log->addLog("regit",$userinfo);
          }else{
-             sendMSG("系统异常!","10401");
+             sendMSG("系统异常，请联系管理员!","10402");
          }
      }
 
@@ -79,10 +79,10 @@ class Phone extends Controller
         $data['password'] = trim(input("password",""));
         $user['ip'] =  getIP();
         if(empty($data['username']) ||  empty($data['password'])){
-            sendMSG("请输入用户名或密码!","10400");
+            sendMSG("请输入用户名或密码!","10403");
         }
         if(  !checkUser($data['username'])){
-            sendMSG("用户名格式错误!","10400");
+            sendMSG("用户名格式错误!","10404");
         }
         $user= new \app\index\model\User();
         $userinfo = $user->login($data);
@@ -92,7 +92,7 @@ class Phone extends Controller
             $log = new \app\index\Model\TalkingLog();
             $log->addLog("login",$userinfo);
         }else{
-            sendMSG("用户名或者密码错误!","10401");
+            sendMSG("用户名或者密码错误!","10405");
         }
 
     }
@@ -107,66 +107,68 @@ class Phone extends Controller
      */
     private function Ajax_findUser(){
 
-        $user= new \app\index\model\User();
-        $data = [];
+
         $username = trim(input("username",""));
-        if(  empty($username) || !checkUser($username)){
-            sendMSG("用户名错误","10400");
+        $uid = input("uid",0);
+        if($uid == 0){
+            sendMSG("用户信息错误","10416");
         }
-        $data= $user->findUser($username);
+        if(  empty($username) || !checkUser($username)){
+            sendMSG("用户名错误","10406");
+        }
+        $user= new \app\index\model\User();
+        $data= $user->findUserByName($username);
+        $data["isfriend"] = 0;
         if(!empty($data)){
+            $friends= new \app\index\model\Userfriends();
+            $friendinfo = $friends->findFriend($data["id"],$uid);
+            if(!empty($status)){
+                $data["isfriend"] = 1;
+                $data = array_merge($friendinfo,$data);
+            }
            sendMSG("ok","200",$data);
         }
-        sendMSG("您所查找的用户不存在","10401");
+        sendMSG("您所查找的用户不存在","10407");
     }
 
-    /**
-     * 检测用户是否已经添加
-     * uid
-     * fid
-     */
-    private function Ajax_checkFriends(){
-        $data = [];
-        $data["uid"] = trim(input("uid",""));
-        $data["fid"] = trim(input("fid",""));
-        if(empty($data["uid"])||empty($data["fid"])){
-            sendMSG("数据错误","10400");
-        }
-        $friends= new \app\index\model\Userfriends();
-        $status = $friends->find($data);
-        if($status){
-            sendMSG("ok","200");
-        }else{
-            sendMSG("该用户还不是您的好友","200");
-        }
 
-    }
 
     /**
      * 添加好友
      * uid
      * fid
-     * status = 1
+     * status 关系：0普通关系，1微信好友，2特别关注，3黑名单
      * remark
      */
     private function Ajax_insertFriends(){
         $data=[];
         $data["uid"] = trim(input("uid",""));
         $data["fid"] = trim(input("fid",""));
-        $data["status"] = trim(input("status",1));
+        $data["status"] = trim(input("status",0));
         $data["remark"] = trim(input("remark",""));
-        if(empty($data["uid"])||empty($data["fid"])||empty($data["status"])){
-            sendMSG("数据错误","10400");
+        if(empty($data["uid"])||empty($data["fid"])){
+            sendMSG("数据错误","10409");
         }
-        if(empty($data["remark"])){
-            $data["remark"]="..";
+
+        $user= new \app\index\model\User();
+        $userinfo= $user->findUserByid($data["fid"]);
+
+        if(empty($userinfo)){
+            sendMSG("该用户不存在","103007");
         }
         $friends= new \app\index\model\Userfriends();
+        $friendinfo = $friends->findFriend( $data["fid"], $data["uid"]);
+        if(!empty($friendinfo)){
+            $userinfo = array_merge($userinfo,$friendinfo);
+            sendMSG("ok","200",$userinfo);
+        }
+        $userinfo["status"] = $data["status"];
+        $userinfo["remark"] = $data["remark"];
         $status = $friends->insertFriends($data);
         if($status){
-            sendMSG("ok","200");
+            sendMSG("ok","200",$userinfo);
         }else{
-            sendMSG("添加失败","10300");
+            sendMSG("添加失败","103002");
         }
     }
 
@@ -177,14 +179,14 @@ class Phone extends Controller
     private function Ajax_findFriends(){
         $uid = trim(input("uid",""));
         if(empty($uid)){
-            sendMSG("数据错误","10400");
+            sendMSG("数据错误","10410");
         }
         $friends= new \app\index\model\Userfriends();
         $data = $friends->findFriends($uid);
         if(!empty($data)){
-            sendMSG("已查到所有的好友","200",$data);
+            sendMSG("ok","200",$data);
         }else{
-            sendMSG("查询失败","10300");
+            sendMSG("查询失败","103003");
         }
     }
 
