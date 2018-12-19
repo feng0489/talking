@@ -1,183 +1,616 @@
-<html><head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <title>workerman-chat PHP聊天室 Websocket(HTLM5/Flash)+PHP多进程socket实时推送技术</title>
-  <script type="text/javascript">
-  //WebSocket = null;
-  </script>
-  <link href="__PUBLIC__/chat/css/bootstrap.min.css" rel="stylesheet">
-  <link href="__PUBLIC__/chat/css/style.css" rel="stylesheet">
-  <!-- Include these three JS files: -->
-  <script type="text/javascript" src="__PUBLIC__/chat/js/swfobject.js"></script>
-  <script type="text/javascript" src="__PUBLIC__/chat/js/web_socket.js"></script>
-  <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.min.js"></script>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>talking</title>
+    <link rel="stylesheet" href="__PUBLIC__/chat/css/amazeui.min.css" />
+    <link rel="stylesheet" href="__PUBLIC__/chat/css/main.css" />
+    <link rel="stylesheet" href="__PUBLIC__/chat/css/style.css" />
+    <link rel="stylesheet" href="__PUBLIC__/chat/css/amazeui.min.css" />
+    <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.min.js"></script>
+    <script type="text/javascript" src="__PUBLIC__/chat/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="__PUBLIC__/chat/js/vue.js"></script>
+    <script type="text/javascript" src="__PUBLIC__/chat/js/axios.js"></script>
+    <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.cookie.js"></script>
+    <script type="text/javascript">
+        var ws, username,id, client_list={};
+        // 开启flash的websocket debug
+        WEB_SOCKET_DEBUG = true;
 
-  <script type="text/javascript">
-    if (typeof console == "undefined") {    this.console = { log: function (msg) {  } };}
-    // 如果浏览器不支持websocket，会使用这个flash自动模拟websocket协议，此过程对开发者透明
-    WEB_SOCKET_SWF_LOCATION = "__PUBLIC__/chat/swf/WebSocketMain.swf";
-    // 开启flash的websocket debug
-    WEB_SOCKET_DEBUG = true;
+    </script>
 
-    var ws, name,pwd, client_list={};
-
-    // 连接服务端
-    function connect() {
-       // 创建websocket
-       ws = new WebSocket("ws://"+document.domain+":7272");
-       console.log(ws);
-       // 当socket连接打开时，输入用户名
-       ws.onopen = onopen;
-       // 当有消息时根据消息类型显示不同信息
-       ws.onmessage = onmessage;
-       ws.onclose = function() {
-    	  console.log("连接关闭，定时重连");
-          connect();
-       };
-       ws.onerror = function() {
-     	  console.log("出现错误");
-       };
-    }
-
-    // 连接建立时发送登录信息
-    function onopen()
-    {
-        if(!name && !pwd)
-        {
-            show_prompt();
-        }
-        // 登录
-        var login_data = '{' +
-            '"type":"login",' +
-            '"client_name":"'+name+'",' +
-            '"password":"'+pwd+'" +
-            '"room_id":1}';
-        console.log("websocket握手成功，发送登录数据:"+login_data);
-        ws.send(login_data);
-    }
-
-    // 服务端发来消息时
-    function onmessage(e)
-    {
-        console.log(e.data);
-        var data = eval("("+e.data+")");
-        switch(data['type']){
-            // 服务端ping客户端
-            case 'ping':
-                ws.send('{"type":"pong"}');
-                break;;
-            // 登录 更新用户列表
-            case 'login':
-                //{"type":"login","client_id":xxx,"client_name":"xxx","client_list":"[...]","time":"xxx"}
-                say(data['client_id'], data['client_name'],  data['client_name']+' 加入了聊天室', data['time']);
-                if(data['client_list'])
-                {
-                    client_list = data['client_list'];
-                }
-                else
-                {
-                    client_list[data['client_id']] = data['client_name'];
-                }
-                flush_client_list();
-                console.log(data['client_name']+"登录成功");
-                break;
-            // 发言
-            case 'say':
-                //{"type":"say","from_client_id":xxx,"to_client_id":"all/client_id","content":"xxx","time":"xxx"}
-                say(data['from_client_id'], data['from_client_name'], data['content'], data['time']);
-                break;
-            // 用户退出 更新用户列表
-            case 'logout':
-                //{"type":"logout","client_id":xxx,"time":"xxx"}
-                say(data['from_client_id'], data['from_client_name'], data['from_client_name']+' 退出了', data['time']);
-                delete client_list[data['from_client_id']];
-                flush_client_list();
-        }
-    }
-
-    // 输入姓名
-    function show_prompt(){
-        name = prompt('输入您的名字：', '');
-        pwd = prompt('输入您的密码：', '');
-        if(!name || name=='null' || pwd == '' || pwd == 'null'){
-            name = '游客';
-            pwd = '123456';
-        }
-    }
-
-    // 提交对话
-    function onSubmit() {
-      var input = document.getElementById("textarea");
-      var to_client_id = $("#client_list option:selected").attr("value");
-      var to_client_name = $("#client_list option:selected").text();
-      ws.send('{"type":"say","to_client_id":"'+to_client_id+'","to_client_name":"'+to_client_name+'","content":"'+input.value.replace(/"/g, '\\"').replace(/\n/g,'\\n').replace(/\r/g, '\\r')+'"}');
-      input.value = "";
-      input.focus();
-    }
-
-    // 刷新用户列表框
-    function flush_client_list(){
-    	var userlist_window = $("#userlist");
-    	var client_list_slelect = $("#client_list");
-    	userlist_window.empty();
-    	client_list_slelect.empty();
-    	userlist_window.append('<h4>在线用户</h4><ul>');
-    	client_list_slelect.append('<option value="all" id="cli_all">所有人</option>');
-    	for(var p in client_list){
-            userlist_window.append('<li id="'+p+'">'+client_list[p]+'</li>');
-            client_list_slelect.append('<option value="'+p+'">'+client_list[p]+'</option>');
-        }
-    	$("#client_list").val(select_client_id);
-    	userlist_window.append('</ul>');
-    }
-
-    // 发言
-    function say(from_client_id, from_client_name, content, time){
-    	$("#dialog").append('<div class="speech_item"><img src="http://lorempixel.com/38/38/?'+from_client_id+'" class="user_icon" /> '+from_client_name+' <br> '+time+'<div style="clear:both;"></div><p class="triangle-isosceles top">'+content+'</p> </div>');
-    }
-
-    $(function(){
-    	select_client_id = 'all';
-	    $("#client_list").change(function(){
-	         select_client_id = $("#client_list option:selected").attr("value");
-	    });
-    });
-  </script>
 </head>
-<body onload="connect();">
-    <div class="container">
-	    <div class="row clearfix">
+<body id="body" >
+<div class="box">
+    <div class="wechat">
 
-	        <div class="col-md-1 column">
-	        </div>
-            <div class="col-md-3 column">
-                <div class="thumbnail">
-                    <div class="caption" id="userlist"></div>
+        <div class="sidestrip">
+            <div class="am-dropdown" data-am-dropdown>
+                <!--头像插件-->
+                <div class="own_head am-dropdown-toggle"></div>
+
+                <div class="am-dropdown-content">
+
+                    <div class="own_head_top">
+                        <div class="own_head_top_text">
+                            <p class="own_name">
+                                <span class='own_user_name'></span>
+                                <img src="__STATIC__/images/icon/head.png" alt="" /></p>
+                            <p class="own_numb">qweqwe</p>
+                        </div>
+
+                        <img src="__STATIC__/images/own_head.jpg" alt="" />
+                    </div>
+
+                    <button class="tc">点击登录</button>
+
+                    <div class="own_head_bottom">
+                        <p><span>地区</span>江西 九江</p>
+                        <div class="own_head_bottom_img">
+                            <a href=""><img src="__STATIC__/images/icon/head_1.png"/></a>
+                            <a href=""><img src="__STATIC__/images/icon/head_2.png"/></a>
+                        </div>
+                    </div>
                 </div>
 
             </div>
-	        <div class="col-md-6 column">
+            <!--三图标-->
+            <div class="sidestrip_icon">
+                <a id="si_1" style="background: url(__STATIC__/images/icon/head_2_1.png) no-repeat;"></a>
+                <a id="si_2"></a>
+                <a id="si_3"></a>
+            </div>
 
-	           <div class="thumbnail">
-	               <div class="caption" id="dialog"></div>
+            <!--底部扩展键-->
+            <div id="doc-dropdown-justify-js">
+                <div class="am-dropdown" id="doc-dropdown-js" style="position: initial;">
+                    <div class="sidestrip_bc am-dropdown-toggle"></div>
+                    <ul class="am-dropdown-content" style="">
+                        <li>
+                            <a href="#" data-am-modal="{target: '#doc-modal-1', closeViaDimmer: 0, width: 400, height: 225}">意见反馈</a>
+                            <div class="am-modal am-modal-no-btn" tabindex="-1" id="doc-modal-1">
+                                <div class="am-modal-dialog">
+                                    <div class="am-modal-hd">Modal 标题
+                                        <a href="javascript: void(0)" class="am-close am-close-spin" data-am-modal-close>&times;</a>
+                                    </div>
+                                    <div class="am-modal-bd">
+                                        Modal 内容。本 Modal 无法通过遮罩层关闭。
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
 
-	           </div>
-	           <form onsubmit="onSubmit(); return false;">
-	                <select style="margin-bottom:8px" id="client_list">
-                        <option value="all">所有人</option>
-                    </select>
-                    <textarea class="textarea thumbnail" id="textarea"></textarea>
-                    <div class="say-btn"><input type="submit" class="btn btn-default" value="发表" /></div>
-               </form>
-               <div>
-               &nbsp;&nbsp;&nbsp;&nbsp;<b>房间列表:</b>（当前在&nbsp;房间<?php echo isset($_GET['room_id'])&&intval($_GET['room_id'])>0 ? intval($_GET['room_id']):1; ?>）<br>
-               &nbsp;&nbsp;&nbsp;&nbsp;<a href="/?room_id=1">房间1</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="/?room_id=2">房间2</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="/?room_id=3">房间3</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="/?room_id=4">房间4</a>
-               <br><br>
-               </div>
-               <p class="cp">PHP多进程+Websocket(HTML5/Flash)+PHP Socket实时推送技术&nbsp;&nbsp;&nbsp;&nbsp;Powered by <a href="http://www.workerman.net/workerman-chat" target="_blank">workerman-chat</a></p>
-	        </div>
+                        <li><a href="#">备份与恢复</a></li>
+                        <li><a href="#">设置</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
 
-	    </div>
+        <!--登录窗口-->
+        <div class="popup" id="popup">
+            <div class="top_nav" id='top_nav'>
+                <div align="center">
+                    <span>登录账号</span>
+                    <a class="guanbi"></a>
+                </div>
+            </div>
+            <div class="min">
+                <div class="tc_login" id = "login">
+                    <div class="left">
+                        <h4 align="center">手机扫描</h4>
+                        <div align="center"><img src="__STATIC__/images/erweima.jpg" width="150" height="150" /></div>
+                        <dd>
+                            <div align="center">扫描二维码登录</div>
+                        </dd>
+                    </div>
+                    <div class="right">
+                        <form method="POST" name="form_login" target="_top">
+                            <div align="center">
+                                <a href="">短信快捷登录</a>
+                                <i class="icon-mobile-phone"></i>
+                                <input type="text"  :username="users.username" v-model="users.username" required="required" placeholder="用户名" autocomplete="off" class="input_yh">
+                                <input type="password" :password="users.password" v-model="users.password" required="required" placeholder="密码" autocomplete="off" class="input_mm">
+
+                            </div>
+                            <dd>
+                                <span class="error_text" style="color:red"></span>
+                                <div align="center"><a href="">遇到登录问题</a></div>
+                            </dd>
+                            <div align="center">
+                                <input @click="userLogin" class="button" title="Sign In" value="登录">
+                            </div>
+                        </form>
+                        <dd>
+                            <div align="center"><a href="#" target="_blank">立即注册</a></div>
+                        </dd>
+                        <hr align="center" />
+                        <div align="center">期待更多功能 </div>
+                    </div>
+                </div>
+                <script>
+                    $(function () {
+                        login =  new Vue({
+                            el:'#login',
+                            data:{
+                                users:{
+                                    username:'',
+                                    password:''
+                                }
+                            },
+                            methods:{
+                                userLogin(){
+                                    axios.post('__LOGIN__', {
+                                        username: this.users.username,
+                                        password: this.users.password,
+                                        ac: "login",
+                                    })
+                                        .then(function (response) {
+                                            var data = response.data
+                                            if(data.code == 200){
+                                                console.log(data.data.username)
+                                                username = data.data.username;
+                                                $.cookie("username",username)
+                                                $('.own_user_name').text( $.cookie("username"));
+                                                $("#popup").hide();
+                                                $(".own_head_top").show();
+                                                $(".own_head_bottom").show();
+                                                $(".error_text").hide();
+                                                $(".tc").hide();
+                                            }else{
+                                                $(".error_text").text(data.msg);
+                                                $(".error_text").show();
+                                                $(".tc").show();
+                                                $(".own_head_top").hide();
+                                                $(".own_head_bottom").hide();
+                                            }
+
+                                        })
+                                        .catch(function (error) {
+
+                                        });
+                                }
+
+                            }
+                        });
+
+
+                    });
+
+
+                </script>
+
+            </div>
+        </div>
+        <!--聊天列表-->
+        <div class="middle on">
+            <div class="wx_search">
+                <input type="text" placeholder="用户名 手机号 微信号"/>
+                <button >+</button>
+            </div>
+            <div class="office_text">
+                <ul class="user_list">
+                    <li class="user_active">
+                        <div class="user_head"><img src="__STATIC__/images/head/15.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">早安无恙</p>
+                            <p class="user_message">我是傻逼！，金少凯牛逼！</p>
+                        </div>
+                        <div class="user_time">下午 2：54</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/2.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">夏继涛</p>
+                            <p class="user_message">[小程序]</p>
+                        </div>
+                        <div class="user_time">上午 11：03</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/3.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">十里老街秋名山车神车队</p>
+                            <p class="user_message">乞讨两块交个话费</p>
+                        </div>
+                        <div class="user_time">昨天</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/4.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">阿杰</p>
+                            <p class="user_message">[动画表情]</p>
+                        </div>
+                        <div class="user_time">昨天</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/5.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">订阅号</p>
+                            <p class="user_message">庐山国际水彩艺术节：</p>
+                        </div>
+                        <div class="user_time">星期三</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/6.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">小龙网食品</p>
+                            <p class="user_message">槟榔的100种吃法</p>
+                        </div>
+                        <div class="user_time">星期二</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/7.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">文件传输助手</p>
+                            <p class="user_message"></p>
+                        </div>
+                        <div class="user_time">星期二</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/8.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">陈明杰</p>
+                            <p class="user_message">妈的，你在聊我</p>
+                        </div>
+                        <div class="user_time">星期四</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/9.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">妈</p>
+                            <p class="user_message">面</p>
+                        </div>
+                        <div class="user_time">星期四</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/10.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">土豆</p>
+                            <p class="user_message">[图片]</p>
+                        </div>
+                        <div class="user_time"></div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/11.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">Emmera</p>
+                            <p class="user_message"></p>
+                        </div>
+                        <div class="user_time"></div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/12.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">彭于晏丶plus</p>
+                            <p class="user_message">我送20个都他妈的能赢，这群鬼人真的恐怖</p>
+                        </div>
+                        <div class="user_time"></div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!--好友列表-->
+        <div class="middle">
+            <div class="wx_search">
+                <input type="text" placeholder="用户名 手机号 微信号"/>
+                <button class="search_add_frends">+</button>
+            </div>
+            <div class="office_text">
+                <ul class="friends_list">
+                    <li>
+                        <p>新的朋友</p>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/1.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">新的朋友</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <p>公众号</p>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/2.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">公众号</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <p>A</p>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/3.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">彭于晏丶plus</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/4.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">陈依依</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__PUBLIC__/images/head/5.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">毛毛</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <p>B</p>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/6.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">苏笑言</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/7.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">往事不再提</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <p>C</p>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/8.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">夏继涛</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/9.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">早安无恙</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/10.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">王鹏</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <p>D</p>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/11.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">涨了潮了</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/12.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">Ktz丶中融资</p>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            $(function () {
+                $("#search_add_frends").click(function(){
+                    getShopList();
+                });
+
+            })
+
+        </script>
+
+        <!--程序列表-->
+        <div class="middle">
+            <div class="wx_search">
+                <input type="text" placeholder="搜索收藏内容"/>
+                <button>+</button>
+            </div>
+            <div class="office_text">
+                <ul class="icon_list">
+                    <li class="icon_active">
+                        <div class="icon"><img src="__STATIC__/images/icon/icon.png" alt="" /></div>
+                        <span>全部收藏</span>
+                    </li>
+                    <li>
+                        <div class="icon"><img src="__STATIC__/images/icon/icon1.png" alt="" /></div>
+                        <span>链接</span>
+                    </li>
+                    <li>
+                        <div class="icon"><img src="__STATIC__/images/icon/icon2.png" alt="" /></div>
+                        <span>相册</span>
+                    </li>
+                    <li>
+                        <div class="icon"><img src="__STATIC__/images/icon/icon3.png" alt="" /></div>
+                        <span>笔记</span>
+                    </li>
+                    <li>
+                        <div class="icon"><img src="__STATIC__/images/icon/icon4.png" alt="" /></div>
+                        <span>文件</span>
+                    </li>
+                    <li>
+                        <div class="icon"><img src="__STATIC__/images/icon/icon5.png" alt="" /></div>
+                        <span>音乐</span>
+                    </li>
+                    <li>
+                        <div class="icon"><img src="__STATIC__/images/icon/icon6.png" alt="" /></div>
+                        <span>标签</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!--聊天窗口-->
+        <div class="talk_window">
+            <div class="windows_top">
+                <div class="windows_top_box">
+                    <span>早安无恙</span>
+                    <ul class="window_icon">
+                        <li><a href=""><img src="__STATIC__/images/icon/icon7.png"/></a></li>
+                        <li><a href=""><img src="__STATIC__/images/icon/icon8.png"/></a></li>
+                        <li><a href=""><img src="__STATIC__/images/icon/icon9.png"/></a></li>
+                        <li><a href=""><img src="__STATIC__/images/icon/icon10.png"/></a></li>
+                    </ul>
+                    <div style="display: none" class="extend" class="am-btn am-btn-success" data-am-offcanvas="{target: '#doc-oc-demo3'}"></div>
+                    <!-- 侧边栏内容 -->
+                    <div id="doc-oc-demo3" class="am-offcanvas">
+                        <div class="am-offcanvas-bar am-offcanvas-bar-flip">
+                            <div class="am-offcanvas-content">
+                                <p><a href="http://music.163.com/#/song?id=385554" target="_blank">网易音乐</a></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!--聊天内容-->
+            <div class="windows_body">
+                <div class="office_text" style="height: 100%;">
+                    <ul class="content" id="chatbox">
+                        <li class="me"><img src="__STATIC__/images/own_head.jpg" title="金少凯"><span>疾风知劲草，板荡识诚臣</span></li>
+                        <li class="other"><img src="__STATIC__/images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="windows_input" id="talkbox">
+                <div class="input_icon">
+                    <a href="javascript:;"></a>
+                    <a href="javascript:;"></a>
+                    <a href="javascript:;"></a>
+                    <a href="javascript:;"></a>
+                    <a href="javascript:;"></a>
+                    <a href="javascript:;"></a>
+                </div>
+                <div class="input_box">
+                    <textarea name="" rows="" cols="" id="input_box"></textarea>
+                    <button id="send">发送（S）</button>
+                </div>
+            </div>
+        </div>
     </div>
-    <script type="text/javascript">var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F7b1919221e89d2aa5711e4deb935debd' type='text/javascript'%3E%3C/script%3E"));</script>
+</div>
+
+
+<script type="text/javascript" src="__PUBLIC__/chat/js/amazeui.min.js"></script>
+<script type="text/javascript" src="__PUBLIC__/chat/js/zUI.js"></script>
+<script type="text/javascript" src="__PUBLIC__/chat/js/wechat.js"></script>
+<script type="text/javascript" src="__PUBLIC__/chat/js/web_socket.js"></script>
+
+
+<!--登录-->
+<script type="text/javascript">
+    $(function () {
+
+        $(".top_nav").mousedown(function(e){
+            $(this).css("cursor","move");//改变鼠标指针的形状
+            var offset = $(this).offset();//DIV在页面的位置
+            var x = e.pageX - offset.left;//获得鼠标指针离DIV元素左边界的距离
+            var y = e.pageY - offset.top;//获得鼠标指针离DIV元素上边界的距离
+            $(document).bind("mousemove",function(ev){
+
+                $(".popup").stop();//加上这个之后
+
+                var _x = ev.pageX - x;//获得X轴方向移动的值
+                var _y = ev.pageY - y;//获得Y轴方向移动的值
+
+                $(".popup").animate({left:_x+"px",top:_y+"px"},10);
+            });
+
+        });
+
+        $(document).mouseup(function() {
+            $(".popup").css("cursor","default");
+            $(this).unbind("mousemove");
+        });
+    })
+</script>
+<!--登录-->
+<script type="text/javascript">
+    function a() {
+        var si1 = document.getElementById('si_1');
+        var si2 = document.getElementById('si_2');
+        var si3 = document.getElementById('si_3');
+        si1.onclick = function () {
+            si1.style.background = "url(__STATIC__/images/icon/head_2_1.png) no-repeat"
+            si2.style.background = "";
+            si3.style.background = "";
+        };
+        si2.onclick = function () {
+            si2.style.background = "url(__STATIC__/images/icon/head_3_1.png) no-repeat"
+            si1.style.background = "";
+            si3.style.background = "";
+        };
+        si3.onclick = function () {
+            si3.style.background = "url(__STATIC__/images/icon/head_4_1.png) no-repeat"
+            si1.style.background = "";
+            si2.style.background = "";
+        };
+
+    }
+
+    function b(){
+        var text = document.getElementById('input_box');
+        var chat = document.getElementById('chatbox');
+        var btn = document.getElementById('send');
+        var talk = document.getElementById('talkbox');
+        btn.onclick=function(){
+            if(text.value ==''){
+                alert('不能发送空消息');
+            }else{
+                chat.innerHTML += '<li class="me"><img src="'+'__STATIC__/images/own_head.jpg'+'"><span>'+text.value+'</span></li>';
+                text.value = '';
+                chat.scrollTop=chat.scrollHeight;
+                talk.style.background="#fff";
+                text.style.background="#fff";
+            };
+        };
+    };
+
+    //窗口效果
+    //点击登录class为tc 显示
+    window.onload = function () {
+        //三图标
+        a();
+        b();
+        // console.log($.cookie("username"))
+        //登录窗口
+        if(!$.cookie("username")){
+            $("#popup").show();
+            $(".error_text").hide();
+            $(".own_head_top").hide();
+            $(".own_head_bottom").hide();
+            tc_center();
+        }else{
+            $('.own_user_name').text($.cookie("username"));
+            $(".tc").hide();
+        }
+    }
+    $(".tc").click(function(){
+        $("#popup").show();
+        $(".error_text").hide();
+        tc_center();
+    });
+    //点击关闭按钮
+    $("a.guanbi").click(function(){
+        $("#popup").hide();
+    })
+
+    //窗口水平居中
+    $(window).resize(function(){
+        tc_center();
+    });
+
+    function tc_center(){
+        var _top=($(window).height()-$(".popup").height())/2;
+        var _left=($(window).width()-$(".popup").width())/2;
+
+        $(".popup").css({top:_top,left:_left});
+    }
+</script>
+
+
 </body>
 </html>
