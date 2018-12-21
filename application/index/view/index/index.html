@@ -20,9 +20,44 @@
     <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.jsoncookie.js"></script>
 
     <script type="text/javascript">
+        if (typeof console == "undefined") {    this.console = { log: function (msg) {  } };}
         var ws, users,myfriends, client_list={};
         // 开启flash的websocket debug
         WEB_SOCKET_DEBUG = true;
+
+        function friendsAndgroudList(){
+            //加载好友列表
+            myfriends = $.getJSONCookie("friends")
+            var friends_list = "";
+            var talking_friend = ""
+            if(myfriends){
+                $.each(myfriends,function(i,item){
+
+                    var photo = i+2
+                    //好友，关注的公众号列表
+                    friends_list += "<li data-id='"+item.fid+"' class='talk_to_friead'>";
+                    friends_list += " <div class='friends_box'>";
+                    friends_list += " <div class='user_head'><img src='__STATIC__/images/head/"+photo+".jpg'/></div>";
+                    friends_list += "  <div class='friends_text'>";
+                    friends_list += " <p class='user_name'>"+item.username+"</p>";
+                    friends_list += " </div></div></li>";
+
+                    //所有好友，关注公众号的聊天列表
+                    // talking_friend += '<li class=""  data-id="'+item.fid+'" id="friend_talk_active">';
+                    // talking_friend += '<div class="user_head"><img src="__STATIC__/images/head/'+photo+'.jpg"/></div>';
+                    // talking_friend +='<div class="user_text">';
+                    // talking_friend += '<p class="user_name">'+item.username+'</p>';
+                    // talking_friend +=  ' <p class="user_message"></p> </div>';
+                    // talking_friend += ' <div class="user_time"></div> </li>';
+
+                });
+                $(".friends_list").append(friends_list);
+                //$(".user_list").append(talking_friend);
+
+            }
+
+
+        }
 
         function tag() {
             var si1 = document.getElementById('si_1');
@@ -67,31 +102,20 @@
                     text.style.background="#fff";
                 };
             };
+            ws.send('{"type":"say","to_client_id":"'+212+'","to_client_name":"'+4231+'","content":"'+text.value.replace(/"/g, '\\"').replace(/\n/g,'\\n').replace(/\r/g, '\\r')+'"}');
+            text.value = "";
+            text.focus();
         };
 
         //窗口效果
         //点击登录class为tc 显示
         $(function() {
             //三图标
+
             tag();
-            say()
+            //say()
             tagchange()
             users = $.getJSONCookie("users")
-            myfriends = $.getJSONCookie("friends")
-            var friends_list = "";
-            if(myfriends){
-                $.each(myfriends,function(i,item){
-                    var photo = i+2
-                    friends_list += "<li data-id='"+item.fid+"' class='talk_to_friead'>";
-                    friends_list += " <div class='friends_box'>";
-                    friends_list += " <div class='user_head'><img src='__STATIC__/images/head/"+photo+".jpg'/></div>";
-                    friends_list += "  <div class='friends_text'>";
-                    friends_list += " <p class='user_name'>"+item.username+"</p>";
-                    friends_list += " </div></div></li>";
-
-                });
-            }
-
             //登录窗口
             if(!users){
                 $(".talk_window").hide();
@@ -103,36 +127,70 @@
             }else{
                 $('.own_user_name').text(users.username);
                 $('.own_numb').text(users.username);
-                $(".friends_list").append(friends_list);
                 $(".tc").hide();
                 $(".talk_window").hide();
+                friendsAndgroudList();
             }
 
 
-
-            $(document).on('click','.talk_to_friead',function(){
+            $(document).on('dblclick','.talk_to_friead',function(){
                 var fid = $(this).data('id');
                 var user_name = $(this).find("p").text();
-                var lilist = $(".user_list").children("li").data('id')
-                console.log(lilist)
-                if(!lilist){
+                var lilist = [];//$(".user_list").children("li").data('id')
+                $('.user_list').find('li').each(function() {
+                    userid =  $(this).data('id');
+                    lilist.push(userid);
+                })
+                if($.inArray(fid, lilist) == -1){
                     var talking_friend = ""
-                    talking_friend += '<li  data-id="'+fid+'" id="friend_talk_active">';
+                    var id = 0;
+                    talking_friend += '<li  data-id="'+fid+'" id="friend_talk_active" class="">';
                     talking_friend += '<div class="user_head"><img src="__STATIC__/images/head/'+fid+'.jpg"/></div>';
                     talking_friend +='<div class="user_text">';
                     talking_friend += '<p class="user_name">'+user_name+'</p>';
                     talking_friend +=  ' <p class="user_message"></p> </div>';
                     talking_friend += ' <div class="user_time"></div> </li>';
                     $(".user_list").append(talking_friend);
+
+                    $('.user_list').find('li').each(function() {
+                        id =  $(this).data('id');
+                        if(id==fid){
+                            $("li[data-id='"+id+"']").removeClass('down_talking');
+                            $("li[data-id='"+id+"']").addClass("top_talking");
+                            $('.user_list').prepend($(this));
+                        }else{
+                            $("li[data-id='"+id+"']").removeClass('top_talking');
+                            $("li[data-id='"+id+"']").addClass("down_talking");
+                        }
+
+                    })
+                }else{
+                    $('.user_list').find('li').each(function() {
+                        id =  $(this).data('id');
+                        if(id==fid){
+                            $("li[data-id='"+id+"']").removeClass('down_talking');
+                            $("li[data-id='"+id+"']").addClass("top_talking");
+                            $('.user_list').prepend($(this));
+                        }else{
+                            $("li[data-id='"+id+"']").removeClass('top_talking');
+                            $("li[data-id='"+id+"']").addClass("down_talking");
+                        }
+
+                    })
                 }
+
                 $(".talking_windows_username").text(user_name);
                 $(".talk_window").show();
                  document.getElementById('si_1').style.background = "url(__STATIC__/images/icon/head_2_1.png) no-repeat";
                  document.getElementById('si_2').style.background = "";
-
                 $("#friend_table_list").hide();
                 $("#talking_room_list").show();
+                // 当socket连接打开时，输入用户名
+                ws.onopen = onopen(users.id,fid);
+
             })
+
+            connect();
 
         });
         $(".tc").click(function(){
@@ -162,8 +220,7 @@
             // 创建websocket
             ws = new WebSocket("ws://"+document.domain+":7272");
             console.log(ws);
-            // 当socket连接打开时，输入用户名
-            ws.onopen = onopen;
+
             // 当有消息时根据消息类型显示不同信息
             ws.onmessage = onmessage;
             ws.onclose = function() {
@@ -174,6 +231,49 @@
                 console.log("出现错误");
             };
         }
+
+        // 连接建立时发送登录信息
+        function onopen(uid,fid)
+        {
+
+            var json = {
+                type: "join",
+                client_name: users.username,
+                users_id:{
+                    uid,
+                    fid,
+                },
+                room_id:1
+            }
+            var joind_data =JSON.stringify(json)
+            console.log("websocket握手成功，发送登录数据:"+joind_data);
+            ws.send(joind_data);
+        }
+
+        // 服务端发来消息时
+        function onmessage(e)
+        {
+            console.log(e.data);
+            var data = eval("("+e.data+")");
+            switch(data['type']){
+                // 服务端ping客户端
+                case 'ping':
+                    ws.send('{"type":"pong"}');
+                    break;
+                // 发言
+                case 'say':
+                    //{"type":"say","from_client_id":xxx,"to_client_id":"all/client_id","content":"xxx","time":"xxx"}
+                    say(data['from_client_id'], data['from_client_name'], data['content'], data['time']);
+                    break;
+                // 用户退出 更新用户列表
+                case 'logout':
+                    //{"type":"logout","client_id":xxx,"time":"xxx"}
+                    say(data['from_client_id'], data['from_client_name'], data['from_client_name']+' 退出了', data['time']);
+                    delete client_list[data['from_client_id']];
+                    flush_client_list();
+            }
+        }
+
 
     </script>
 
@@ -513,10 +613,6 @@
             $(this).unbind("mousemove");
         });
     })
-</script>
-<!--登录-->
-<script type="text/javascript">
-
 </script>
 
 </body>

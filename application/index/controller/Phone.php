@@ -66,7 +66,7 @@ class Phone extends Controller
              $me["uid"] = $userinfo["id"];
              $me["fid"] = $userinfo["id"];
              $me["status"] = 1;
-             $me["remark"] = "..";
+             $me["remark"] = "";
              $friends= new \app\index\model\Userfriends();
              $status = $friends->insertFriends($me);
              if(empty($status)){

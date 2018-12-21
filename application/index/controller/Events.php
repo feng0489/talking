@@ -43,18 +43,20 @@ class Events
             // 客户端登录 message格式: {type:login, name:xx, room_id:1} ，添加到客户端，广播给所有客户端xx进入聊天室
 
             case 'join':
-                // 判断是否有房间号
-                if(!isset($message_data['room_id']))
-                {
-                    throw new \Exception("\$message_data['room_id'] not set. client_ip:{$_SERVER['REMOTE_ADDR']} \$message:$message");
-                }
-                
+               // {"type":"join","client_name":"qweqwe","uid":"1","fid":"2","room_id":1}
                 // 把房间号昵称放到session中
                 $room_id = $message_data['room_id'];
+                $users_id= $message_data['users_id'];
                 $client_name = $message_data['client_name'];
                 $_SESSION['room_id'] = $room_id;
-                $_SESSION['client_name'] = $client_name;
-
+                $_SESSION['client_name'] = $users_id["uid"]."_".$users_id["fid"];
+                $ug_data = [];
+                $ug_data['first_id'] = $users_id["uid"];
+                $ug_data['root_id'] = $room_id;
+                $ug_data['users'] = json_encode($users_id);
+                $ug_data['room_key'] = md5($users_id["uid"]."_".$users_id["fid"]);//房间钥匙，用于对话
+                $userg= new \app\index\model\UserRoom();
+                $ur = $userg->saveRoom($ug_data);
 
                 // 获取房间内所有用户列表
                 $clients_list = Gateway::getClientSessionsByGroup($room_id);
@@ -76,7 +78,6 @@ class Events
                 // 给当前用户发送用户列表
                 $new_message['client_list'] = $clients_list;
                 Gateway::sendToCurrentClient(json_encode($new_message));
-
                 return;
                 break;
                 
