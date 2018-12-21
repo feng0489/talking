@@ -12,168 +12,11 @@
     <script type="text/javascript" src="__PUBLIC__/chat/js/vue.js"></script>
     <script type="text/javascript" src="__PUBLIC__/chat/js/axios.js"></script>
     <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.cookie.js"></script>
-    <script type="text/javascript" src="__PUBLIC__/chat/js/amazeui.min.js"></script>
-    <script type="text/javascript" src="__PUBLIC__/chat/js/zUI.js"></script>
-    <script type="text/javascript" src="__PUBLIC__/chat/js/wechat.js"></script>
-    <script type="text/javascript" src="__PUBLIC__/chat/js/web_socket.js"></script>
-    <script type="text/javascript" src="__PUBLIC__/chat/js/json2.js"></script>
-    <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.jsoncookie.js"></script>
 
     <script type="text/javascript">
         var ws, users,myfriends, client_list={};
         // 开启flash的websocket debug
         WEB_SOCKET_DEBUG = true;
-
-        function tag() {
-            var si1 = document.getElementById('si_1');
-            var si2 = document.getElementById('si_2');
-            var si3 = document.getElementById('si_3');
-            si1.onclick = function () {
-                si1.style.background = "url(__STATIC__/images/icon/head_2_1.png) no-repeat"
-                si2.style.background = "";
-                si3.style.background = "";
-            };
-            si2.onclick = function () {
-                si2.style.background = "url(__STATIC__/images/icon/head_3_1.png) no-repeat"
-                si1.style.background = "";
-                si3.style.background = "";
-            };
-            si3.onclick = function () {
-                si3.style.background = "url(__STATIC__/images/icon/head_4_1.png) no-repeat"
-                si1.style.background = "";
-                si2.style.background = "";
-            };
-
-        }
-        function tagchange(){
-            $(".sidestrip_icon a").click(function(){
-                $(".sidestrip_icon a").eq($(this).index()).addClass("cur").siblings().removeClass('cur');
-                $(".middle").hide().eq($(this).index()).show();
-            });
-        }
-        function say(){
-            var text = document.getElementById('input_box');
-            var chat = document.getElementById('chatbox');
-            var btn = document.getElementById('send');
-            var talk = document.getElementById('talkbox');
-            btn.onclick=function(){
-                if(text.value ==''){
-                    alert('不能发送空消息');
-                }else{
-                    chat.innerHTML += '<li class="me"><img src="'+'__STATIC__/images/own_head.jpg'+'"><span>'+text.value+'</span></li>';
-                    text.value = '';
-                    chat.scrollTop=chat.scrollHeight;
-                    talk.style.background="#fff";
-                    text.style.background="#fff";
-                };
-            };
-        };
-
-        //窗口效果
-        //点击登录class为tc 显示
-        $(function() {
-            //三图标
-            tag();
-            say()
-            tagchange()
-            users = $.getJSONCookie("users")
-            myfriends = $.getJSONCookie("friends")
-            var friends_list = "";
-            if(myfriends){
-                $.each(myfriends,function(i,item){
-                    var photo = i+2
-                    friends_list += "<li data-id='"+item.fid+"' class='talk_to_friead'>";
-                    friends_list += " <div class='friends_box'>";
-                    friends_list += " <div class='user_head'><img src='__STATIC__/images/head/"+photo+".jpg'/></div>";
-                    friends_list += "  <div class='friends_text'>";
-                    friends_list += " <p class='user_name'>"+item.username+"</p>";
-                    friends_list += " </div></div></li>";
-
-                });
-            }
-
-            //登录窗口
-            if(!users){
-                $(".talk_window").hide();
-                $("#popup").show();
-                $(".error_text").hide();
-                $(".own_head_top").hide();
-                $(".own_head_bottom").hide();
-                tc_center();
-            }else{
-                $('.own_user_name').text(users.username);
-                $('.own_numb').text(users.username);
-                $(".friends_list").append(friends_list);
-                $(".tc").hide();
-                $(".talk_window").hide();
-            }
-
-
-
-            $(document).on('click','.talk_to_friead',function(){
-                var fid = $(this).data('id');
-                var user_name = $(this).find("p").text();
-                var lilist = $(".user_list").children("li").data('id')
-                console.log(lilist)
-                if(!lilist){
-                    var talking_friend = ""
-                    talking_friend += '<li  data-id="'+fid+'" id="friend_talk_active">';
-                    talking_friend += '<div class="user_head"><img src="__STATIC__/images/head/'+fid+'.jpg"/></div>';
-                    talking_friend +='<div class="user_text">';
-                    talking_friend += '<p class="user_name">'+user_name+'</p>';
-                    talking_friend +=  ' <p class="user_message"></p> </div>';
-                    talking_friend += ' <div class="user_time"></div> </li>';
-                    $(".user_list").append(talking_friend);
-                }
-                $(".talking_windows_username").text(user_name);
-                $(".talk_window").show();
-                 document.getElementById('si_1').style.background = "url(__STATIC__/images/icon/head_2_1.png) no-repeat";
-                 document.getElementById('si_2').style.background = "";
-
-                $("#friend_table_list").hide();
-                $("#talking_room_list").show();
-            })
-
-        });
-        $(".tc").click(function(){
-            $("#popup").show();
-            $(".error_text").hide();
-            tc_center();
-        });
-        //点击关闭按钮
-        $("a.guanbi").click(function(){
-            $("#popup").hide();
-        })
-
-        //窗口水平居中
-        $(window).resize(function(){
-            tc_center();
-        });
-
-        function tc_center(){
-            var _top=($(window).height()-$(".popup").height())/2;
-            var _left=($(window).width()-$(".popup").width())/2;
-
-            $(".popup").css({top:_top,left:_left});
-        }
-
-        // 连接服务端
-        function connect() {
-            // 创建websocket
-            ws = new WebSocket("ws://"+document.domain+":7272");
-            console.log(ws);
-            // 当socket连接打开时，输入用户名
-            ws.onopen = onopen;
-            // 当有消息时根据消息类型显示不同信息
-            ws.onmessage = onmessage;
-            ws.onclose = function() {
-                console.log("连接关闭，定时重连");
-                connect();
-            };
-            ws.onerror = function() {
-                console.log("出现错误");
-            };
-        }
 
     </script>
 
@@ -308,32 +151,14 @@
                                             var result = response.data
                                             if(result.code == 200){
                                                 $.setJSONCookie("users", result.data.users);//存储json格式cookie
-                                               // console.log(result.data.friends);
-                                                var friends_list = "";
-                                                if(result.data.friends){
-                                                    $.setJSONCookie("friends", result.data.friends);
-                                                    $.each(result.data.friends,function(i,item){
-                                                        var photo = i+1
-                                                        friends_list += "<li id='talk_to_friead'>";
-                                                        friends_list += " <div class='friends_box'>";
-                                                        friends_list += " <div class='user_head'><img src='__STATIC__/images/head/"+photo+".jpg'/></div>";
-                                                        friends_list += "  <div class='friends_text'>";
-                                                        friends_list += " <p class='user_name'>"+item.username+"</p>";
-                                                        friends_list += " </div></div></li>";
-
-                                                    });
-                                                }
+                                                $.setJSONCookie("friends", result.data.friends);
                                                 $('.own_user_name').text(result.data.users.username);
-                                                $('.own_numb').text( result.data.users.username);
-                                                $(".friends_list").html(friends_list);
-
+                                                $('.own_numb').text( result.data.users.weixin);
                                                 $("#popup").hide();
                                                 $(".own_head_top").show();
                                                 $(".own_head_bottom").show();
                                                 $(".error_text").hide();
                                                 $(".tc").hide();
-                                                $(".talk_window").hide();
-
                                             }else{
                                                 $(".error_text").text(result.msg);
                                                 $(".error_text").show();
@@ -360,27 +185,122 @@
             </div>
         </div>
         <!--聊天列表-->
-        <div class="middle on" id="talking_room_list">
+        <div class="middle on">
             <div class="wx_search">
                 <input type="text" placeholder="用户名 手机号 微信号"/>
                 <button >+</button>
             </div>
             <div class="office_text">
                 <ul class="user_list">
-
+                    <li class="user_active">
+                        <div class="user_head"><img src="__STATIC__/images/head/15.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">早安无恙</p>
+                            <p class="user_message">我是傻逼！，金少凯牛逼！</p>
+                        </div>
+                        <div class="user_time">下午 2：54</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/2.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">夏继涛</p>
+                            <p class="user_message">[小程序]</p>
+                        </div>
+                        <div class="user_time">上午 11：03</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/3.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">十里老街秋名山车神车队</p>
+                            <p class="user_message">乞讨两块交个话费</p>
+                        </div>
+                        <div class="user_time">昨天</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/4.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">阿杰</p>
+                            <p class="user_message">[动画表情]</p>
+                        </div>
+                        <div class="user_time">昨天</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/5.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">订阅号</p>
+                            <p class="user_message">庐山国际水彩艺术节：</p>
+                        </div>
+                        <div class="user_time">星期三</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/6.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">小龙网食品</p>
+                            <p class="user_message">槟榔的100种吃法</p>
+                        </div>
+                        <div class="user_time">星期二</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/7.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">文件传输助手</p>
+                            <p class="user_message"></p>
+                        </div>
+                        <div class="user_time">星期二</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/8.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">陈明杰</p>
+                            <p class="user_message">妈的，你在聊我</p>
+                        </div>
+                        <div class="user_time">星期四</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/9.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">妈</p>
+                            <p class="user_message">面</p>
+                        </div>
+                        <div class="user_time">星期四</div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/10.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">土豆</p>
+                            <p class="user_message">[图片]</p>
+                        </div>
+                        <div class="user_time"></div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/11.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">Emmera</p>
+                            <p class="user_message"></p>
+                        </div>
+                        <div class="user_time"></div>
+                    </li>
+                    <li>
+                        <div class="user_head"><img src="__STATIC__/images/head/12.jpg"/></div>
+                        <div class="user_text">
+                            <p class="user_name">彭于晏丶plus</p>
+                            <p class="user_message">我送20个都他妈的能赢，这群鬼人真的恐怖</p>
+                        </div>
+                        <div class="user_time"></div>
+                    </li>
                 </ul>
             </div>
         </div>
 
         <!--好友列表-->
-        <div class="middle" id="friend_table_list">
+        <div class="middle">
             <div class="wx_search">
                 <input type="text" placeholder="用户名 手机号 微信号"/>
                 <button class="search_add_frends">+</button>
             </div>
             <div class="office_text">
                 <ul class="friends_list">
-                    <li id="">
+                    <li>
                         <p>新的朋友</p>
                         <div class="friends_box">
                             <div class="user_head"><img src="__STATIC__/images/head/1.jpg"/></div>
@@ -389,9 +309,92 @@
                             </div>
                         </div>
                     </li>
+                    <li>
+                        <p>公众号</p>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/2.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">公众号</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <p>A</p>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/3.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">彭于晏丶plus</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/4.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">陈依依</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__PUBLIC__/images/head/5.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">毛毛</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <p>B</p>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/6.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">苏笑言</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/7.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">往事不再提</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <p>C</p>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/8.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">夏继涛</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/9.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">早安无恙</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/10.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">王鹏</p>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <p>D</p>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/11.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">涨了潮了</p>
+                            </div>
+                        </div>
+                        <div class="friends_box">
+                            <div class="user_head"><img src="__STATIC__/images/head/12.jpg"/></div>
+                            <div class="friends_text">
+                                <p class="user_name">Ktz丶中融资</p>
+                            </div>
+                        </div>
+                    </li>
                 </ul>
             </div>
         </div>
+
+
 
         <!--程序列表-->
         <div class="middle">
@@ -437,7 +440,7 @@
         <div class="talk_window">
             <div class="windows_top">
                 <div class="windows_top_box">
-                    <span class="talking_windows_username"></span>
+                    <span>早安无恙</span>
                     <ul class="window_icon">
                         <li><a href=""><img src="__STATIC__/images/icon/icon7.png"/></a></li>
                         <li><a href=""><img src="__STATIC__/images/icon/icon8.png"/></a></li>
@@ -460,8 +463,8 @@
             <div class="windows_body">
                 <div class="office_text" style="height: 100%;">
                     <ul class="content" id="chatbox">
-                        <!--<li class="me"><img src="__STATIC__/images/own_head.jpg" title=""><span></span></li>-->
-                        <!--<li class="other"><img src="__STATIC__/images/head/15.jpg" title=""><span></span></li>-->
+                        <li class="me"><img src="__STATIC__/images/own_head.jpg" title="金少凯"><span>疾风知劲草，板荡识诚臣</span></li>
+                        <li class="other"><img src="__STATIC__/images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>
                     </ul>
                 </div>
             </div>
@@ -485,7 +488,12 @@
 </div>
 
 
-
+<script type="text/javascript" src="__PUBLIC__/chat/js/amazeui.min.js"></script>
+<script type="text/javascript" src="__PUBLIC__/chat/js/zUI.js"></script>
+<script type="text/javascript" src="__PUBLIC__/chat/js/wechat.js"></script>
+<script type="text/javascript" src="__PUBLIC__/chat/js/web_socket.js"></script>
+<script type="text/javascript" src="__PUBLIC__/chat/js/json2.js"></script>
+<script type="text/javascript" src="__PUBLIC__/chat/js/jquery.jsoncookie.js"></script>
 
 <!--登录-->
 <script type="text/javascript">
@@ -516,7 +524,93 @@
 </script>
 <!--登录-->
 <script type="text/javascript">
+    function a() {
+        var si1 = document.getElementById('si_1');
+        var si2 = document.getElementById('si_2');
+        var si3 = document.getElementById('si_3');
+        si1.onclick = function () {
+            si1.style.background = "url(__STATIC__/images/icon/head_2_1.png) no-repeat"
+            si2.style.background = "";
+            si3.style.background = "";
+        };
+        si2.onclick = function () {
+            si2.style.background = "url(__STATIC__/images/icon/head_3_1.png) no-repeat"
+            si1.style.background = "";
+            si3.style.background = "";
+        };
+        si3.onclick = function () {
+            si3.style.background = "url(__STATIC__/images/icon/head_4_1.png) no-repeat"
+            si1.style.background = "";
+            si2.style.background = "";
+        };
 
+    }
+
+    function b(){
+        var text = document.getElementById('input_box');
+        var chat = document.getElementById('chatbox');
+        var btn = document.getElementById('send');
+        var talk = document.getElementById('talkbox');
+        btn.onclick=function(){
+            if(text.value ==''){
+                alert('不能发送空消息');
+            }else{
+                chat.innerHTML += '<li class="me"><img src="'+'__STATIC__/images/own_head.jpg'+'"><span>'+text.value+'</span></li>';
+                text.value = '';
+                chat.scrollTop=chat.scrollHeight;
+                talk.style.background="#fff";
+                text.style.background="#fff";
+            };
+        };
+    };
+
+    //窗口效果
+    //点击登录class为tc 显示
+    $(function() {
+        //三图标
+        a();
+        b();
+        users = $.getJSONCookie("users")
+        myfriends = $.getJSONCookie("friends")
+        $.each(myfriends,function(i,item){
+
+            $(".friends_list").html();
+
+        });
+        //登录窗口
+        if(!users.username){
+            $("#popup").show();
+            $(".error_text").hide();
+            $(".own_head_top").hide();
+            $(".own_head_bottom").hide();
+            tc_center();
+        }else{
+            $('.own_user_name').text(users.username);
+            $('.own_numb').text(users.username);
+            $(".tc").hide();
+        }
+    });
+    $(".tc").click(function(){
+        $("#popup").show();
+        $(".error_text").hide();
+        tc_center();
+    });
+    //点击关闭按钮
+    $("a.guanbi").click(function(){
+        $("#popup").hide();
+    })
+
+    //窗口水平居中
+    $(window).resize(function(){
+        tc_center();
+    });
+
+    function tc_center(){
+        var _top=($(window).height()-$(".popup").height())/2;
+        var _left=($(window).width()-$(".popup").width())/2;
+
+        $(".popup").css({top:_top,left:_left});
+    }
 </script>
 
 </body>

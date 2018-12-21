@@ -36,6 +36,7 @@ class User extends Model
         $user["sex"] = isset($data['sex']) ? $data['sex']: "";
         $user["phone"] = isset($data['phone']) ? $data['phone']:"";
         $user["ip"] = isset($data['ip'])? $data['ip']: "";
+        $user["photo"] = isset($data['photo'])? $data['photo']: "";
         $id = db("user")->insertGetId($user);
         $user['id'] = $id;
         if($id>0){

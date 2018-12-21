@@ -95,9 +95,10 @@ class Phone extends Controller
             sendMSG("用户名格式错误!","10404");
         }
         $user= new \app\index\model\User();
-        $userinfo = $user->login($data);
+        $users= $user->login($data);
         $friend= new \app\index\model\Userfriends();
-        $userinfo["friend"] = $friend->findFriends($userinfo["id"]);
+        $userinfo["users"] = $users;
+        $userinfo["friends"] = $friend->findFriends($users["id"]);
         if(!empty($userinfo)){
             sendMSG("ok","200",$userinfo);
             $log = new \app\index\Model\TalkingLog();
