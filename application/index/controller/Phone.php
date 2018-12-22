@@ -35,6 +35,7 @@ class Phone extends Controller
          $data['password'] = trim(input("password",""));
          $data['weixin'] = trim(input("weixin",""));
          $data['qq'] = trim(input("qq",""));
+         $data['photo'] = trim(input("photo",""));
          $data['sex'] = input("sex",0);//0男,1女
          $data['phone'] = trim(input("phone",""));
          $data['ip'] =  getIP();
@@ -62,6 +63,7 @@ class Phone extends Controller
          if(!empty($userinfo)){
              $log = new \app\index\Model\TalkingLog();
              $log->addLog("regit",$userinfo);
+             //添加自己为好友
              $me = [];
              $me["uid"] = $userinfo["id"];
              $me["fid"] = $userinfo["id"];
@@ -69,6 +71,19 @@ class Phone extends Controller
              $me["remark"] = "";
              $friends= new \app\index\model\Userfriends();
              $status = $friends->insertFriends($me);
+            //添加自己到聊天房间
+             $usergroud = [];
+             $usergroud["name"] = $userinfo['username'];
+             $usergroud["room_key"] = md5($userinfo["id"]."_".$userinfo["id"]);
+             $usergroud["root_id"] = 1;
+             $usergroud["send_user"] = $userinfo["id"];
+             $usergroud["accept_user"] = $userinfo["id"];
+             $usergroud["photo"] = $userinfo["photo"];
+             $usergroud["isopen"] = 0;
+             $usergroud["isfriend"] = 1;
+             $ur = new \app\index\model\UserRoom();
+             $ur->saveRoom($usergroud);
+
              if(empty($status)){
                  sendMSG("未知异常","10400",$userinfo);
              }
@@ -94,13 +109,19 @@ class Phone extends Controller
         if(  !checkUser($data['username'])){
             sendMSG("用户名格式错误!","10404");
         }
+        //获取用户信息
         $user= new \app\index\model\User();
         $users= $user->login($data);
         $userinfo["users"] = $users;
+        //获取朋友信息
         $friend= new \app\index\model\Userfriends();
         $userinfo["friends"] = $friend->findFriends($users["id"]);
+        //获取房间信息
         $room =new \app\index\model\UserRoom();
         $userinfo["rooms"]= $room->getRoomById($users["id"]);
+        //获取聊天信息
+        $message =new \app\index\model\Message();
+        $userinfo["messages"] = $message->getMessage($users["id"]);
         if(!empty($userinfo)){
             sendMSG("ok","200",$userinfo);
             $log = new \app\index\Model\TalkingLog();
@@ -153,7 +174,7 @@ class Phone extends Controller
      * status 关系：0普通关系，1微信好友，2特别关注，3黑名单
      * remark
      */
-    private function Ajax_insertFriends(){
+    private function Ajax_friendly(){
         $data=[];
         $data["uid"] = input("uid",0);
         $data["fid"] = input("fid",0);
@@ -162,13 +183,14 @@ class Phone extends Controller
         if(empty($data["uid"])||empty($data["fid"])||!is_numeric($data["uid"])||!is_numeric($data["fid"])){
             sendMSG("数据错误","10409");
         }
-
+         //检查用户是否存在
         $user= new \app\index\model\User();
         $userinfo= $user->findUserByid($data["fid"]);
-
         if(empty($userinfo)){
             sendMSG("该用户不存在","103007");
         }
+
+        //检查是否已经成为好友
         $friends= new \app\index\model\Userfriends();
         $friendinfo = $friends->findFriend( $data["fid"], $data["uid"]);
         if(!empty($friendinfo)){
@@ -177,7 +199,20 @@ class Phone extends Controller
         }
         $userinfo["status"] = $data["status"];
         $userinfo["remark"] = $data["remark"];
+        //添加为好友
         $status = $friends->insertFriends($data);
+        //添加到聊天房间
+        $usergroud = [];
+        $usergroud["name"] = $userinfo["username"];
+        $usergroud["room_key"] = md5($data["uid"]."_".$userinfo["id"]);
+        $usergroud["root_id"] = 1;
+        $usergroud["send_user"] = $data["uid"];
+        $usergroud["accept_user"] = $userinfo["id"];
+        $usergroud["photo"] = $userinfo["photo"];
+        $usergroud["isopen"] = 0;
+        $usergroud["isfriend"] = 1;
+        $ur = new \app\index\model\UserRoom();
+        $ur->saveRoom($usergroud);
 
         if($status){
             sendMSG("ok","200",$userinfo);

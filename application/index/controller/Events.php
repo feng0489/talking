@@ -46,18 +46,21 @@ class Events
                // {"type":"join","client_name":"qweqwe","uid":"1","fid":"2","room_id":1}
                 // 把房间号昵称放到session中
                 $room_id = $message_data['room_id'];
-                $client_name = empty($message_data['client_name']) ? md5($message_data['uid']."_".$message_data['fid']):$message_data['client_name'];
+                $client_name = $message_data['uid'];
+                $room_key =  $message_data['room_key'];
                 $_SESSION['room_id'] = $room_id;
                 $_SESSION['client_name'] = $client_name;
-                $ug_data = [];
-                $ug_data['room_key'] = $client_name; //房间钥匙，用于对话
-                $ug_data['send_user'] = $message_data['uid'];
-                $ug_data['accept_user'] = $message_data['fid'];
-                $ug_data['root_id'] = $room_id;
-                $ug_data['name'] = $message_data['username'];
-                $ug_data['photo'] = $message_data['photo'];
-                $userg= new \app\index\model\UserRoom();
-                $ur = $userg->saveRoom($ug_data);
+
+                //进入房间后激活房间
+                if($message_data['isopen'] == 0 ){//为0时开启
+                    $data = [];
+                    $data["room_key"] = $message_data['room_key'];
+                    $data["sender"] = $message_data['uid'];
+                    $data["accepter"] = $message_data['fid'];
+                    $data["isopen"] = 1;
+                    $uroom = new \app\index\model\UserRoom();
+                    $uroom->updateOpen($data);
+                }
                 // 获取房间内所有用户列表
                 $clients_list = Gateway::getClientSessionsByGroup($room_id);
                 foreach($clients_list as $tmp_client_id=>$item)
@@ -74,7 +77,8 @@ class Events
                     'time'=>date('Y-m-d H:i:s'),
                     'accept_user'=> $message_data['fid'],
                     'send_user'=> $message_data['uid'],
-                    'key'=>$ur['room_key'],
+                    'key'=>$room_key,
+                    'isopen'=>1,
                 );
                 Gateway::sendToGroup($room_id, json_encode($new_message));
                 Gateway::joinGroup($client_id, $room_id);
@@ -93,27 +97,24 @@ class Events
                 }
                 $room_id = $_SESSION['room_id'];
                 $client_name = $_SESSION['client_name'];
-                
-                // 私聊
-//                if($message_data['to_client_id'] != 'all')
-//                {
-//                    $new_message = array(
-//                        'type'=>'say',
-//                        'from_client_id'=>$client_id,
-//                        'from_client_name' =>$client_name,
-//                        'to_client_id'=>$message_data['to_client_id'],
-//                        'content'=>"<b>对你说: </b>".nl2br(htmlspecialchars($message_data['content'])),
-//                        'time'=>date('Y-m-d H:i:s'),
-//                    );
-//                    Gateway::sendToClient($message_data['to_client_id'], json_encode($new_message));
-//                    $new_message['content'] = "<b>你对".htmlspecialchars($message_data['to_client_name'])."说: </b>".nl2br(htmlspecialchars($message_data['content']));
-//                    return Gateway::sendToCurrentClient(json_encode($new_message));
-//                }
-                
+echo "say:".json_encode($message_data);
+                $data = [];
+                $data["sender"] = $message_data['sender'];
+                $data["accepter"] = $message_data['accepter'];
+                $data["key"] = $message_data['key'];
+                $data["isopen"] = $message_data['isopen'];
+                $data["content"] = $message_data['content'];
+                $data["root_id"] = $room_id;
+                //将信息存入数据库
+                $msg = new \app\index\model\Message();
+                $isok = $msg->saveMsg($data);
+
                 $new_message = array(
                     'type'=>'say', 
-                    'from_client_id'=>$client_id,
-                    'from_client_name' =>$client_name,
+                    'sender'=>$data["sender"],
+                    'accepter' =>$data["accepter"],
+                    'key' =>$data["key"],
+                    'isopen' => "1",
                     'content'=>nl2br(htmlspecialchars($message_data['content'])),
                     'time'=>date('Y-m-d H:i:s'),
                 );

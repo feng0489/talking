@@ -24,8 +24,16 @@
         }
     </style>
     <script type="text/javascript">
+
+        function sortNumber(a, b)
+        {
+            return b - a// 按顺序排序
+        }
+        function myFunction(){
+            console.log(213123);
+        }
        // if (typeof console == "undefined") {    this.console = { log: function (msg) {  } };}
-        var ws, users,myfriends, roomslist, client_list={};
+        var ws, users,myfriends, roomslist,messages, client_list={};
         // 开启flash的websocket debug
         WEB_SOCKET_DEBUG = true;
         
@@ -34,13 +42,36 @@
             var talking_friend = ""
             if(roomslist){
                $.each(roomslist,function (i,item) {
-                   var photo = "__STATIC__/images/head/"+item.accept_user+".jpg";
-                   talking_friend += '<li  data-id="'+item.accept_user+'" data-key="'+item.room_key+'" class = "rooms_list" id="friend_talk_active" class="">';
-                   talking_friend += '<div class="user_head"><img src="'+photo+'"/></div>';
-                   talking_friend +='<div class="user_text">';
-                   talking_friend += '<p class="user_name">'+item.name+'</p>';
-                   talking_friend +=  ' <p class="user_message"></p> </div>';
-                   talking_friend += ' <div class="user_time"></div> </li>';
+                   if(item.isopen > 0){
+                       var photo = "__STATIC__/images/head/"+item.accepter+".jpg";
+                       talking_friend += '<li  data-id="'+item.accepter+'" data-key="'+item.room_key+'" data-isopen="'+item.isopen+'" class = "rooms_list" id="friend_talk_active" class="">';
+                       talking_friend += '<div class="user_head"><img src="'+photo+'"/></div>';
+                       talking_friend +='<div class="user_text">';
+                       talking_friend += '<p class="user_name">'+item.name+'</p>';
+                       talking_friend +=  ' <p class="user_message"></p> </div>';
+                       talking_friend += ' <div class="user_time"></div> </li>';
+                   }else{
+                       messages = $.getJSONCookie("messages")
+                       if(messages){
+                           messages.sort();
+                           var key = "";
+                           $.each(messages,function (e,msg) {
+                               if(msg.room_key == item.room_key){
+                                   if(key != msg.room_key){
+                                       var photo = "__STATIC__/images/head/"+item.accepter+".jpg";
+                                       talking_friend += '<li  data-id="'+item.accepter+'" data-key="'+item.room_key+'" data-isopen="'+item.isopen+'" class = "rooms_list" id="friend_talk_active" class="">';
+                                       talking_friend += '<div class="user_head"><img src="'+photo+'"/></div>';
+                                       talking_friend +='<div class="user_text">';
+                                       talking_friend += '<p class="user_name">'+item.name+'</p>';
+                                       talking_friend +=  ' <p class="user_message">'+msg.content+'</p> </div>';
+                                       talking_friend += ' <div class="user_time"></div></li>';
+                                   }
+                                   key = msg.room_key;
+                               }
+                           })
+                       }
+                   }
+
                });
             }
             $(".user_list").append(talking_friend);
@@ -55,17 +86,23 @@
             if(myfriends){
                 $.each(myfriends,function(i,item){
                     var room_key = "";
-
+                    var photo =  "";
+                    var isopen = "";
                     if(roomslist){
                         $.each(roomslist,function (j,jtem) {
-                            if(jtem.accept_user == item.fid && jtem.send_user == users.id){
+                            if(jtem.accepter == item.fid && jtem.sender == users.id){
                                 room_key =  jtem.room_key;
+                                isopen =  jtem.isopen;
                             }
                         })
                     }
-                    var photo = "__STATIC__/images/head/"+item.fid+".jpg";
+                    if(item.photo === ""){
+                         photo = "__STATIC__/images/head/"+item.fid+".jpg";
+                    }else {
+                        photo =   item.photo;
+                    }
                     //好友，关注的公众号列表
-                    friends_list += "<li data-id='"+item.fid+"' data-key='"+room_key+"' class='talk_to_friead'>";
+                    friends_list += "<li data-id='"+item.fid+"' data-key='"+room_key+"' data-isopen='"+isopen+"' class='talk_to_friead'>";
                     friends_list += " <div class='friends_box'>";
                     friends_list += " <div class='user_head'><img src='"+photo+"'/></div>";
                     friends_list += "  <div class='friends_text'>";
@@ -106,23 +143,45 @@
 
         }
 
-        function say(){
+        function say(data){
             var text = document.getElementById('input_box');
             var chat = document.getElementById('chatbox');
             var btn = document.getElementById('send');
             var talk = document.getElementById('talkbox');
-            btn.onclick=function(){
-                if(text.value ==''){
-                    alert('不能发送空消息');
-                }else{
-                    chat.innerHTML += '<li class="me"><img src="'+'__STATIC__/images/own_head.jpg'+'"><span>'+text.value+'</span></li>';
-                    text.value = '';
+            if(data){
+                //{"type":"say","sender":1,"accepter":2,"key":"ab35e84a215f0f711ed629c2abb9efa0","isopen":"1","content":"11","time":"2018-12-22 16:20:00"}
+                if(data.sender != users.id){
+                    chat.innerHTML += '<li class="other"><img src="'+'__STATIC__/images/head/'+users.id+'.jpg'+'"><span>'+data.content+'</span></li>';
                     chat.scrollTop=chat.scrollHeight;
-                    talk.style.background="#fff";
-                    text.style.background="#fff";
-                    ws.send('{"type":"say","to_client_id":"'+212+'","to_client_name":"'+4231+'","content":"'+text.value.replace(/"/g, '\\"').replace(/\n/g,'\\n').replace(/\r/g, '\\r')+'"}');
+                }
+
+            }else{
+
+                btn.onclick=function(){
+                    if(text.value ==''){
+                        alert('不能发送空消息');
+                    }else{
+                        var fid = $(".top_talking").data("id");
+                        var key = $(".top_talking").data("key");
+                        var isopen = $(".top_talking").data("isopen");
+                        chat.innerHTML += '<li class="me"><img src="'+'__STATIC__/images/own_head.jpg'+'"><span>'+text.value+'</span></li>';
+                        var message = {
+                            type:"say",
+                            sender:users.id,
+                            accepter:fid,
+                            key:key,
+                            isopen:isopen,
+                            content:text.value.replace(/"/g, '\\"').replace(/\n/g,'\\n').replace(/\r/g, '\\r'),
+                        }
+                        ws.send(JSON.stringify(message));
+                        text.value = '';
+                        chat.scrollTop=chat.scrollHeight;
+                        talk.style.background="#fff";
+                        text.style.background="#fff";
+                    };
                 };
-            };
+            }
+
 
         };
 
@@ -149,9 +208,28 @@
                 roomsList();
                 friendsAndgroudList();
             }
-            $(document).on('dblclick','#friend_talk_active',function(){
+            $(document).on('click','#friend_talk_active',function(){
                 var key = $(this).data('key');
-                console.log(key);
+                var fid = $(this).data('id');
+                var isopen = $(this).data('isopen');
+                var user_name = $(this).find("p").text();
+                var id = 0;
+                $('.user_list').find('li').each(function() {
+                    id =  $(this).data('id');
+                    if(id==fid){
+                        $("li[data-id='"+id+"']").removeClass('down_talking');
+                        $("li[data-id='"+id+"']").addClass("top_talking");
+                        $('.user_list').prepend($(this));
+                    }else{
+                        $("li[data-id='"+id+"']").removeClass('top_talking');
+                        $("li[data-id='"+id+"']").addClass("down_talking");
+                    }
+
+                })
+                $("#talking_room_list").show();
+                ws.onopen = onopenSocket(fid,isopen,key)
+                $(".talking_windows_username").text(user_name);
+                $(".talk_window").show();
             })
 
             $(document).on('dblclick','.talk_to_friead',function(){
@@ -163,18 +241,20 @@
                     lilist.push(userid);
                 })
                 var room_key = "";
+                var isopen = "";
                 var photo = "__STATIC__/images/head/"+fid+".jpg";
                 if(roomslist){
                     $.each(roomslist,function (i,item) {
-                        if(item.accept_user == fid && item.send_user == users.id){
+                        if(item.accepter == fid && item.sender == users.id){
                             room_key =  item.room_key;
+                            isopen =  item.isopen;
                         }
                     })
                 }
                 if($.inArray(fid, lilist) == -1){
                     var talking_friend = ""
                     var id = 0;
-                    talking_friend += '<li  data-id="'+fid+'" data-key="'+room_key+'" id="friend_talk_active" class="">';
+                    talking_friend += '<li  data-id="'+fid+'" data-key="'+room_key+'" data-isopen="'+isopen+'" id="friend_talk_active" class="">';
                     talking_friend += '<div class="user_head"><img src="'+photo+'"/></div>';
                     talking_friend +='<div class="user_text">';
                     talking_friend += '<p class="user_name">'+user_name+'</p>';
@@ -215,23 +295,22 @@
                  document.getElementById('si_2').style.background = "";
                 $("#friend_table_list").hide();
                 $("#talking_room_list").show();
-                // 当socket连接打开时，输入用户名
+                //socket握手
 
-                ws.onopen = onopen(fid,room_key,user_name,photo,room_key);
+                ws.onopen = onopenSocket(fid,photo,isopen);
             })
 
             connect();
             say();
         });
-        $(".tc").click(function(){
+        $(document).on('click','.tc',function(){
             $("#popup").show();
             $(".error_text").hide();
             tc_center();
         });
-        //点击关闭按钮
-        $("a.guanbi").click(function(){
+        $(document).on('click','.guanbi',function(){
             $("#popup").hide();
-        })
+        });
 
         //窗口水平居中
         $(window).resize(function(){
@@ -241,7 +320,6 @@
         function tc_center(){
             var _top=($(window).height()-$(".popup").height())/2;
             var _left=($(window).width()-$(".popup").width())/2;
-
             $(".popup").css({top:_top,left:_left});
         }
 
@@ -263,17 +341,16 @@
         }
 
         // 连接建立时发送登录信息
-        function onopen(fid,client_name,user_name,photo,room_key)
+        function onopenSocket(fid,isopen,room_key)
         {
             var json = {
                 type: "join",
-                client_name: client_name,
-                username: user_name,
+                client_name: users.id,
                 fid: fid,
                 uid: users.id,
-                photo: photo,
-                key:room_key,
-                room_id:1
+                room_key:room_key,
+                room_id:1,
+                isopen:isopen
             }
             var joind_data =JSON.stringify(json)
             console.log("websocket握手成功，发送登录数据:"+joind_data);
@@ -294,33 +371,34 @@
                 case 'join':
                     fid = data['accept_user'];
                     key = data['key'];
+                    isopen = data['isopen'];
                     $('.user_list').find('li').each(function() {
                         id =  $(this).data('id');
                         if(id==fid){
                             //$("li[data-id='"+id+"']").removeClass('down_talking');
                             $(".top_talking").data("key",key)
+                            $(".top_talking").data("isopen",isopen)
                             $('.user_list').prepend($(this));
                         }
 
                     })
                 case 'say':
-                    //{"type":"say","from_client_id":xxx,"to_client_id":"all/client_id","content":"xxx","time":"xxx"}
-                    say(data['from_client_id'], data['from_client_name'], data['content'], data['time']);
+                    say(data);
                     break;
                 // 用户退出 更新用户列表
                 case 'logout':
                     //{"type":"logout","client_id":xxx,"time":"xxx"}
-                    say(data['from_client_id'], data['from_client_name'], data['from_client_name']+' 退出了', data['time']);
+                   // say(data['from_client_id'], data['from_client_name'], data['from_client_name']+' 退出了', data['time']);
                     delete client_list[data['from_client_id']];
-                    flush_client_list();
+                   // flush_client_list();
             }
         }
 
 
     </script>
 
-</head>
-<body id="body">
+</head  >
+<body id="body" onbeforeunload="return myFunction()">
 <div class="box">
     <div class="wechat">
 
@@ -451,6 +529,10 @@
                                             if(result.code == 200){
                                                 users = $.JSONCookie("users", result.data.users);//存储json格式cookie
                                                // console.log(result.data.friends);
+                                                if(result.data.messages){
+                                                    messages = $.JSONCookie("messages", result.data.messages);
+                                                    //friendsAndgroudList();
+                                                }
                                                 if(result.data.rooms){
                                                     roomslist = $.JSONCookie("rooms", result.data.rooms);
                                                     roomsList();
@@ -460,6 +542,8 @@
                                                     myfriends = $.JSONCookie("friends", result.data.friends);
                                                     friendsAndgroudList();
                                                 }
+
+                                                console.log(messages);
                                                 $('.own_user_name').text(result.data.users.username);
                                                 $('.own_numb').text( result.data.users.username);
                                                 $("#popup").hide();
@@ -515,15 +599,15 @@
             </div>
             <div class="office_text">
                 <ul class="friends_list">
-                    <li id="">
-                        <p>新的朋友</p>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/1.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">新的朋友</p>
-                            </div>
-                        </div>
-                    </li>
+                    <!--<li id="">-->
+                        <!--<p>新的朋友</p>-->
+                        <!--<div class="friends_box">-->
+                            <!--<div class="user_head"><img src="__STATIC__/images/head/1.jpg"/></div>-->
+                            <!--<div class="friends_text">-->
+                                <!--<p class="user_name">新的朋友</p>-->
+                            <!--</div>-->
+                        <!--</div>-->
+                    <!--</li>-->
                 </ul>
             </div>
         </div>
