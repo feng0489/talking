@@ -46,18 +46,18 @@ class Events
                // {"type":"join","client_name":"qweqwe","uid":"1","fid":"2","room_id":1}
                 // 把房间号昵称放到session中
                 $room_id = $message_data['room_id'];
-                $users_id= $message_data['users_id'];
-                $client_name = $message_data['client_name'];
+                $client_name = empty($message_data['client_name']) ? md5($message_data['uid']."_".$message_data['fid']):$message_data['client_name'];
                 $_SESSION['room_id'] = $room_id;
-                $_SESSION['client_name'] = $users_id["uid"]."_".$users_id["fid"];
+                $_SESSION['client_name'] = $client_name;
                 $ug_data = [];
-                $ug_data['first_id'] = $users_id["uid"];
+                $ug_data['room_key'] = $client_name; //房间钥匙，用于对话
+                $ug_data['send_user'] = $message_data['uid'];
+                $ug_data['accept_user'] = $message_data['fid'];
                 $ug_data['root_id'] = $room_id;
-                $ug_data['users'] = json_encode($users_id);
-                $ug_data['room_key'] = md5($users_id["uid"]."_".$users_id["fid"]);//房间钥匙，用于对话
+                $ug_data['name'] = $message_data['username'];
+                $ug_data['photo'] = $message_data['photo'];
                 $userg= new \app\index\model\UserRoom();
                 $ur = $userg->saveRoom($ug_data);
-
                 // 获取房间内所有用户列表
                 $clients_list = Gateway::getClientSessionsByGroup($room_id);
                 foreach($clients_list as $tmp_client_id=>$item)
@@ -68,10 +68,13 @@ class Events
 
                 // 转播给当前房间的所有客户端，xx进入聊天室 message {type:login, client_id:xx, name:xx}
                 $new_message = array(
-                    'type'=>$message_data['type'],
+                    'type'=>"join",
                     'client_id'=>$client_id,
                     'client_name'=>htmlspecialchars($client_name),
                     'time'=>date('Y-m-d H:i:s'),
+                    'accept_user'=> $message_data['fid'],
+                    'send_user'=> $message_data['uid'],
+                    'key'=>$ur['room_key'],
                 );
                 Gateway::sendToGroup($room_id, json_encode($new_message));
                 Gateway::joinGroup($client_id, $room_id);
@@ -92,26 +95,25 @@ class Events
                 $client_name = $_SESSION['client_name'];
                 
                 // 私聊
-                if($message_data['to_client_id'] != 'all')
-                {
-                    $new_message = array(
-                        'type'=>'say',
-                        'from_client_id'=>$client_id, 
-                        'from_client_name' =>$client_name,
-                        'to_client_id'=>$message_data['to_client_id'],
-                        'content'=>"<b>对你说: </b>".nl2br(htmlspecialchars($message_data['content'])),
-                        'time'=>date('Y-m-d H:i:s'),
-                    );
-                    Gateway::sendToClient($message_data['to_client_id'], json_encode($new_message));
-                    $new_message['content'] = "<b>你对".htmlspecialchars($message_data['to_client_name'])."说: </b>".nl2br(htmlspecialchars($message_data['content']));
-                    return Gateway::sendToCurrentClient(json_encode($new_message));
-                }
+//                if($message_data['to_client_id'] != 'all')
+//                {
+//                    $new_message = array(
+//                        'type'=>'say',
+//                        'from_client_id'=>$client_id,
+//                        'from_client_name' =>$client_name,
+//                        'to_client_id'=>$message_data['to_client_id'],
+//                        'content'=>"<b>对你说: </b>".nl2br(htmlspecialchars($message_data['content'])),
+//                        'time'=>date('Y-m-d H:i:s'),
+//                    );
+//                    Gateway::sendToClient($message_data['to_client_id'], json_encode($new_message));
+//                    $new_message['content'] = "<b>你对".htmlspecialchars($message_data['to_client_name'])."说: </b>".nl2br(htmlspecialchars($message_data['content']));
+//                    return Gateway::sendToCurrentClient(json_encode($new_message));
+//                }
                 
                 $new_message = array(
                     'type'=>'say', 
                     'from_client_id'=>$client_id,
                     'from_client_name' =>$client_name,
-                    'to_client_id'=>'all',
                     'content'=>nl2br(htmlspecialchars($message_data['content'])),
                     'time'=>date('Y-m-d H:i:s'),
                 );

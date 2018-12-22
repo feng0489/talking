@@ -96,9 +96,11 @@ class Phone extends Controller
         }
         $user= new \app\index\model\User();
         $users= $user->login($data);
-        $friend= new \app\index\model\Userfriends();
         $userinfo["users"] = $users;
+        $friend= new \app\index\model\Userfriends();
         $userinfo["friends"] = $friend->findFriends($users["id"]);
+        $room =new \app\index\model\UserRoom();
+        $userinfo["rooms"]= $room->getRoomById($users["id"]);
         if(!empty($userinfo)){
             sendMSG("ok","200",$userinfo);
             $log = new \app\index\Model\TalkingLog();
@@ -176,6 +178,7 @@ class Phone extends Controller
         $userinfo["status"] = $data["status"];
         $userinfo["remark"] = $data["remark"];
         $status = $friends->insertFriends($data);
+
         if($status){
             sendMSG("ok","200",$userinfo);
         }else{

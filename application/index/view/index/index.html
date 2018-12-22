@@ -18,41 +18,61 @@
     <script type="text/javascript" src="__PUBLIC__/chat/js/web_socket.js"></script>
     <script type="text/javascript" src="__PUBLIC__/chat/js/json2.js"></script>
     <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.jsoncookie.js"></script>
-
+    <style type="text/css">
+        .top_talking{
+            background: #cfcccc;
+        }
+    </style>
     <script type="text/javascript">
-        if (typeof console == "undefined") {    this.console = { log: function (msg) {  } };}
-        var ws, users,myfriends, client_list={};
+       // if (typeof console == "undefined") {    this.console = { log: function (msg) {  } };}
+        var ws, users,myfriends, roomslist, client_list={};
         // 开启flash的websocket debug
         WEB_SOCKET_DEBUG = true;
+        
+        function roomsList() {
+            roomslist = $.getJSONCookie("rooms")
+            var talking_friend = ""
+            if(roomslist){
+               $.each(roomslist,function (i,item) {
+                   var photo = "__STATIC__/images/head/"+item.accept_user+".jpg";
+                   talking_friend += '<li  data-id="'+item.accept_user+'" data-key="'+item.room_key+'" class = "rooms_list" id="friend_talk_active" class="">';
+                   talking_friend += '<div class="user_head"><img src="'+photo+'"/></div>';
+                   talking_friend +='<div class="user_text">';
+                   talking_friend += '<p class="user_name">'+item.name+'</p>';
+                   talking_friend +=  ' <p class="user_message"></p> </div>';
+                   talking_friend += ' <div class="user_time"></div> </li>';
+               });
+            }
+            $(".user_list").append(talking_friend);
+
+        }
 
         function friendsAndgroudList(){
             //加载好友列表
             myfriends = $.getJSONCookie("friends")
             var friends_list = "";
-            var talking_friend = ""
+
             if(myfriends){
                 $.each(myfriends,function(i,item){
+                    var room_key = "";
 
-                    var photo = i+2
+                    if(roomslist){
+                        $.each(roomslist,function (j,jtem) {
+                            if(jtem.accept_user == item.fid && jtem.send_user == users.id){
+                                room_key =  jtem.room_key;
+                            }
+                        })
+                    }
+                    var photo = "__STATIC__/images/head/"+item.fid+".jpg";
                     //好友，关注的公众号列表
-                    friends_list += "<li data-id='"+item.fid+"' class='talk_to_friead'>";
+                    friends_list += "<li data-id='"+item.fid+"' data-key='"+room_key+"' class='talk_to_friead'>";
                     friends_list += " <div class='friends_box'>";
-                    friends_list += " <div class='user_head'><img src='__STATIC__/images/head/"+photo+".jpg'/></div>";
+                    friends_list += " <div class='user_head'><img src='"+photo+"'/></div>";
                     friends_list += "  <div class='friends_text'>";
                     friends_list += " <p class='user_name'>"+item.username+"</p>";
                     friends_list += " </div></div></li>";
-
-                    //所有好友，关注公众号的聊天列表
-                    // talking_friend += '<li class=""  data-id="'+item.fid+'" id="friend_talk_active">';
-                    // talking_friend += '<div class="user_head"><img src="__STATIC__/images/head/'+photo+'.jpg"/></div>';
-                    // talking_friend +='<div class="user_text">';
-                    // talking_friend += '<p class="user_name">'+item.username+'</p>';
-                    // talking_friend +=  ' <p class="user_message"></p> </div>';
-                    // talking_friend += ' <div class="user_time"></div> </li>';
-
                 });
                 $(".friends_list").append(friends_list);
-                //$(".user_list").append(talking_friend);
 
             }
 
@@ -79,13 +99,13 @@
                 si2.style.background = "";
             };
 
-        }
-        function tagchange(){
             $(".sidestrip_icon a").click(function(){
                 $(".sidestrip_icon a").eq($(this).index()).addClass("cur").siblings().removeClass('cur');
                 $(".middle").hide().eq($(this).index()).show();
             });
+
         }
+
         function say(){
             var text = document.getElementById('input_box');
             var chat = document.getElementById('chatbox');
@@ -100,21 +120,18 @@
                     chat.scrollTop=chat.scrollHeight;
                     talk.style.background="#fff";
                     text.style.background="#fff";
+                    ws.send('{"type":"say","to_client_id":"'+212+'","to_client_name":"'+4231+'","content":"'+text.value.replace(/"/g, '\\"').replace(/\n/g,'\\n').replace(/\r/g, '\\r')+'"}');
                 };
             };
-            ws.send('{"type":"say","to_client_id":"'+212+'","to_client_name":"'+4231+'","content":"'+text.value.replace(/"/g, '\\"').replace(/\n/g,'\\n').replace(/\r/g, '\\r')+'"}');
-            text.value = "";
-            text.focus();
+
         };
 
         //窗口效果
         //点击登录class为tc 显示
         $(function() {
             //三图标
-
             tag();
-            //say()
-            tagchange()
+            $.setJSONCookie("users","")
             users = $.getJSONCookie("users")
             //登录窗口
             if(!users){
@@ -129,9 +146,13 @@
                 $('.own_numb').text(users.username);
                 $(".tc").hide();
                 $(".talk_window").hide();
+                roomsList();
                 friendsAndgroudList();
             }
-
+            $(document).on('dblclick','#friend_talk_active',function(){
+                var key = $(this).data('key');
+                console.log(key);
+            })
 
             $(document).on('dblclick','.talk_to_friead',function(){
                 var fid = $(this).data('id');
@@ -141,11 +162,20 @@
                     userid =  $(this).data('id');
                     lilist.push(userid);
                 })
+                var room_key = "";
+                var photo = "__STATIC__/images/head/"+fid+".jpg";
+                if(roomslist){
+                    $.each(roomslist,function (i,item) {
+                        if(item.accept_user == fid && item.send_user == users.id){
+                            room_key =  item.room_key;
+                        }
+                    })
+                }
                 if($.inArray(fid, lilist) == -1){
                     var talking_friend = ""
                     var id = 0;
-                    talking_friend += '<li  data-id="'+fid+'" id="friend_talk_active" class="">';
-                    talking_friend += '<div class="user_head"><img src="__STATIC__/images/head/'+fid+'.jpg"/></div>';
+                    talking_friend += '<li  data-id="'+fid+'" data-key="'+room_key+'" id="friend_talk_active" class="">';
+                    talking_friend += '<div class="user_head"><img src="'+photo+'"/></div>';
                     talking_friend +='<div class="user_text">';
                     talking_friend += '<p class="user_name">'+user_name+'</p>';
                     talking_friend +=  ' <p class="user_message"></p> </div>';
@@ -186,12 +216,12 @@
                 $("#friend_table_list").hide();
                 $("#talking_room_list").show();
                 // 当socket连接打开时，输入用户名
-                ws.onopen = onopen(users.id,fid);
 
+                ws.onopen = onopen(fid,room_key,user_name,photo,room_key);
             })
 
             connect();
-
+            say();
         });
         $(".tc").click(function(){
             $("#popup").show();
@@ -233,16 +263,16 @@
         }
 
         // 连接建立时发送登录信息
-        function onopen(uid,fid)
+        function onopen(fid,client_name,user_name,photo,room_key)
         {
-
             var json = {
                 type: "join",
-                client_name: users.username,
-                users_id:{
-                    uid,
-                    fid,
-                },
+                client_name: client_name,
+                username: user_name,
+                fid: fid,
+                uid: users.id,
+                photo: photo,
+                key:room_key,
                 room_id:1
             }
             var joind_data =JSON.stringify(json)
@@ -261,6 +291,18 @@
                     ws.send('{"type":"pong"}');
                     break;
                 // 发言
+                case 'join':
+                    fid = data['accept_user'];
+                    key = data['key'];
+                    $('.user_list').find('li').each(function() {
+                        id =  $(this).data('id');
+                        if(id==fid){
+                            //$("li[data-id='"+id+"']").removeClass('down_talking');
+                            $(".top_talking").data("key",key)
+                            $('.user_list').prepend($(this));
+                        }
+
+                    })
                 case 'say':
                     //{"type":"say","from_client_id":xxx,"to_client_id":"all/client_id","content":"xxx","time":"xxx"}
                     say(data['from_client_id'], data['from_client_name'], data['content'], data['time']);
@@ -407,26 +449,19 @@
 
                                             var result = response.data
                                             if(result.code == 200){
-                                                $.setJSONCookie("users", result.data.users);//存储json格式cookie
+                                                users = $.JSONCookie("users", result.data.users);//存储json格式cookie
                                                // console.log(result.data.friends);
-                                                var friends_list = "";
-                                                if(result.data.friends){
-                                                    $.setJSONCookie("friends", result.data.friends);
-                                                    $.each(result.data.friends,function(i,item){
-                                                        var photo = i+1
-                                                        friends_list += "<li id='talk_to_friead'>";
-                                                        friends_list += " <div class='friends_box'>";
-                                                        friends_list += " <div class='user_head'><img src='__STATIC__/images/head/"+photo+".jpg'/></div>";
-                                                        friends_list += "  <div class='friends_text'>";
-                                                        friends_list += " <p class='user_name'>"+item.username+"</p>";
-                                                        friends_list += " </div></div></li>";
+                                                if(result.data.rooms){
+                                                    roomslist = $.JSONCookie("rooms", result.data.rooms);
+                                                    roomsList();
+                                                }
 
-                                                    });
+                                                if(result.data.friends){
+                                                    myfriends = $.JSONCookie("friends", result.data.friends);
+                                                    friendsAndgroudList();
                                                 }
                                                 $('.own_user_name').text(result.data.users.username);
                                                 $('.own_numb').text( result.data.users.username);
-                                                $(".friends_list").html(friends_list);
-
                                                 $("#popup").hide();
                                                 $(".own_head_top").show();
                                                 $(".own_head_bottom").show();
@@ -575,10 +610,12 @@
                     <a href="javascript:;"></a>
                     <a href="javascript:;"></a>
                 </div>
+                <form onsubmit="say(); return false;">
                 <div class="input_box">
                     <textarea name="" rows="" cols="" id="input_box"></textarea>
                     <button id="send">发送（S）</button>
                 </div>
+                </form>
             </div>
         </div>
     </div>
