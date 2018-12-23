@@ -149,12 +149,9 @@
             var btn = document.getElementById('send');
             var talk = document.getElementById('talkbox');
             if(data){
-                //{"type":"say","sender":1,"accepter":2,"key":"ab35e84a215f0f711ed629c2abb9efa0","isopen":"1","content":"11","time":"2018-12-22 16:20:00"}
                 if(data.sender != users.id){
                     chat.innerHTML += '<li class="other"><img src="'+'__STATIC__/images/head/'+users.id+'.jpg'+'"><span>'+data.content+'</span></li>';
-                    chat.scrollTop=chat.scrollHeight;
                 }
-
             }else{
 
                 btn.onclick=function(){
@@ -173,14 +170,17 @@
                             isopen:isopen,
                             content:text.value.replace(/"/g, '\\"').replace(/\n/g,'\\n').replace(/\r/g, '\\r'),
                         }
+
                         ws.send(JSON.stringify(message));
                         text.value = '';
-                        chat.scrollTop=chat.scrollHeight;
-                        talk.style.background="#fff";
-                        text.style.background="#fff";
+
                     };
                 };
             }
+
+            chat.scrollTop=chat.scrollHeight;
+            talk.style.background="#fff";
+            text.style.background="#fff";
 
 
         };
@@ -190,7 +190,7 @@
         $(function() {
             //三图标
             tag();
-            $.setJSONCookie("users","")
+           // $.setJSONCookie("users","")
             users = $.getJSONCookie("users")
             //登录窗口
             if(!users){
@@ -297,7 +297,7 @@
                 $("#talking_room_list").show();
                 //socket握手
 
-                ws.onopen = onopenSocket(fid,photo,isopen);
+                ws.onopen = onopenSocket(fid,isopen,room_key);
             })
 
             connect();
@@ -343,24 +343,27 @@
         // 连接建立时发送登录信息
         function onopenSocket(fid,isopen,room_key)
         {
-            var json = {
-                type: "join",
-                client_name: users.id,
-                fid: fid,
-                uid: users.id,
-                room_key:room_key,
-                room_id:1,
-                isopen:isopen
-            }
-            var joind_data =JSON.stringify(json)
-            console.log("websocket握手成功，发送登录数据:"+joind_data);
-            ws.send(joind_data);
+
+                var json = {
+                    type: "join",
+                    client_name: users.id,
+                    fid: fid,
+                    uid: users.id,
+                    room_key:room_key,
+                    room_id:1,
+                    isopen:isopen
+                }
+                var joind_data =JSON.stringify(json)
+                //console.log("websocket握手成功，发送登录数据:"+joind_data);
+                ws.send(joind_data);
+                $.JSONCookie(room_key,fid);
+
         }
 
         // 服务端发来消息时
         function onmessage(e)
         {
-            console.log(e.data);
+            //console.log(e.data);
             var data = eval("("+e.data+")");
             switch(data['type']){
                 // 服务端ping客户端
@@ -384,6 +387,8 @@
                     })
                 case 'say':
                     say(data);
+                    $.JSONCookie(data.key,data)
+                    console.log($.getJSONCookie(data.key))
                     break;
                 // 用户退出 更新用户列表
                 case 'logout':
@@ -678,7 +683,7 @@
             <!--聊天内容-->
             <div class="windows_body">
                 <div class="office_text" style="height: 100%;">
-                    <ul class="content" id="chatbox">
+                    <ul class="content" id="chatbox" >
                         <!--<li class="me"><img src="__STATIC__/images/own_head.jpg" title=""><span></span></li>-->
                         <!--<li class="other"><img src="__STATIC__/images/head/15.jpg" title=""><span></span></li>-->
                     </ul>
