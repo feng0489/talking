@@ -61,7 +61,6 @@ class Message extends Model
          $accepter = db("message")
             ->where("accepter",$uid)
             ->select();
-
         $massge = array_merge($sender,$accepter);
         return $massge;
     }

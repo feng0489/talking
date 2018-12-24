@@ -20,9 +20,15 @@ class User extends Model
                   return "";
               }
               unset($user["password"]);
+              if($user["online"] == 1){
+                  $userinfo = array(
+                      "id"=>$user["id"],
+                      "online"=>0
+                  );
+                  db("user")->update($userinfo);
+              }
               return $user;
           }else{
-               //$regit = $this->regit($data);
               return "";
           }
     }

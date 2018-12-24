@@ -3,21 +3,40 @@
 <head>
     <meta charset="utf-8">
     <title>talking</title>
+
+    <!--[if IE]
+<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+< ![endif]-->
     <link rel="stylesheet" href="__PUBLIC__/chat/css/amazeui.min.css" />
     <link rel="stylesheet" href="__PUBLIC__/chat/css/main.css" />
     <link rel="stylesheet" href="__PUBLIC__/chat/css/style.css" />
     <link rel="stylesheet" href="__PUBLIC__/chat/css/amazeui.min.css" />
+
     <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.min.js"></script>
     <script type="text/javascript" src="__PUBLIC__/chat/js/jquery-1.11.0.min.js"></script>
+
+
+    <!-- vue包-->
     <script type="text/javascript" src="__PUBLIC__/chat/js/vue.js"></script>
     <script type="text/javascript" src="__PUBLIC__/chat/js/axios.js"></script>
-    <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.cookie.js"></script>
+    <!-- zUIt包-->
     <script type="text/javascript" src="__PUBLIC__/chat/js/amazeui.min.js"></script>
     <script type="text/javascript" src="__PUBLIC__/chat/js/zUI.js"></script>
     <script type="text/javascript" src="__PUBLIC__/chat/js/wechat.js"></script>
+    <!-- web_socket包-->
     <script type="text/javascript" src="__PUBLIC__/chat/js/web_socket.js"></script>
+
+    <!-- json包-->
     <script type="text/javascript" src="__PUBLIC__/chat/js/json2.js"></script>
+     <!-- cookie包-->
+    <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.cookie.js"></script>
     <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.jsoncookie.js"></script>
+
+    <!--localstorage-->
+    <script type="text/javascript" src="__PUBLIC__/chat/js/localmain.js"></script>
+
+
+
     <style type="text/css">
         .top_talking{
             background: #cfcccc;
@@ -38,7 +57,7 @@
         WEB_SOCKET_DEBUG = true;
         
         function roomsList() {
-            roomslist = $.getJSONCookie("rooms")
+            roomslist =  mystorage.get("rooms")
             var talking_friend = ""
             if(roomslist){
                $.each(roomslist,function (i,item) {
@@ -51,7 +70,7 @@
                        talking_friend +=  ' <p class="user_message"></p> </div>';
                        talking_friend += ' <div class="user_time"></div> </li>';
                    }else{
-                       messages = $.getJSONCookie("messages")
+                       messages = mystorage.get("messages")
                        if(messages){
                            messages.sort();
                            var key = "";
@@ -80,7 +99,7 @@
 
         function friendsAndgroudList(){
             //加载好友列表
-            myfriends = $.getJSONCookie("friends")
+            myfriends = mystorage.get("friends")
             var friends_list = "";
 
             if(myfriends){
@@ -191,7 +210,8 @@
             //三图标
             tag();
            // $.setJSONCookie("users","")
-            users = $.getJSONCookie("users")
+            mystorage.clear();
+            users = mystorage.get("users")
             //登录窗口
             if(!users){
                 $(".talk_window").hide();
@@ -235,7 +255,7 @@
             $(document).on('dblclick','.talk_to_friead',function(){
                 var fid = $(this).data('id');
                 var user_name = $(this).find("p").text();
-                var lilist = [];//$(".user_list").children("li").data('id')
+                var lilist = [];
                 $('.user_list').find('li').each(function() {
                     userid =  $(this).data('id');
                     lilist.push(userid);
@@ -356,7 +376,6 @@
                 var joind_data =JSON.stringify(json)
                 //console.log("websocket握手成功，发送登录数据:"+joind_data);
                 ws.send(joind_data);
-                $.JSONCookie(room_key,fid);
 
         }
 
@@ -384,11 +403,20 @@
                             $('.user_list').prepend($(this));
                         }
 
-                    })
+                    });
+                    break;
                 case 'say':
                     say(data);
-                    $.JSONCookie(data.key,data)
-                    console.log($.getJSONCookie(data.key))
+                    var arr = new Array();
+                    var meage = mystorage.get(data.key);
+                    if(meage){
+                        $.each(meage,function(index,value){
+                            arr.push(value);
+                        });
+                    }
+                    arr.push(data);
+                    mystorage.set(data.key,arr);
+                    console.log(mystorage.get(data.key));
                     break;
                 // 用户退出 更新用户列表
                 case 'logout':
@@ -396,6 +424,7 @@
                    // say(data['from_client_id'], data['from_client_name'], data['from_client_name']+' 退出了', data['time']);
                     delete client_list[data['from_client_id']];
                    // flush_client_list();
+                    break;
             }
         }
 
@@ -529,26 +558,22 @@
                                         ac: "login",
                                     })
                                         .then(function (response) {
-
                                             var result = response.data
                                             if(result.code == 200){
-                                                users = $.JSONCookie("users", result.data.users);//存储json格式cookie
-                                               // console.log(result.data.friends);
+                                                users = mystorage.set("users", result.data.users);//存储json格式cookie
                                                 if(result.data.messages){
-                                                    messages = $.JSONCookie("messages", result.data.messages);
-                                                    //friendsAndgroudList();
+                                                    messages =  mystorage.set("messages", result.data.messages);
                                                 }
                                                 if(result.data.rooms){
-                                                    roomslist = $.JSONCookie("rooms", result.data.rooms);
+                                                    roomslist = mystorage.set("rooms", result.data.rooms);
                                                     roomsList();
                                                 }
 
                                                 if(result.data.friends){
-                                                    myfriends = $.JSONCookie("friends", result.data.friends);
+                                                    myfriends =  mystorage.set("friends", result.data.friends);
                                                     friendsAndgroudList();
                                                 }
 
-                                                console.log(messages);
                                                 $('.own_user_name').text(result.data.users.username);
                                                 $('.own_numb').text( result.data.users.username);
                                                 $("#popup").hide();
@@ -568,7 +593,6 @@
 
                                         })
                                         .catch(function (error) {
-
                                         });
                                 }
 
