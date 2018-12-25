@@ -108,16 +108,28 @@ echo "say:".json_encode($message_data);
                 //将信息存入数据库
                 $msg = new \app\index\model\Message();
                 $isok = $msg->saveMsg($data);
+                if($isok){
+                    $new_message = array(
+                        'type'=>'say',
+                        'sender'=>$data["sender"],
+                        'accepter' =>$data["accepter"],
+                        'key' =>$data["key"],
+                        'isopen' => "1",
+                        'content'=>nl2br(htmlspecialchars(trimall($message_data['content']))),
+                        'time'=>date('Y-m-d H:i:s'),
+                    );
+                }else{
+                    $new_message = array(
+                        'type'=>'say',
+                        'sender'=>$data["sender"],
+                        'accepter' =>$data["accepter"],
+                        'key' =>$data["key"],
+                        'isopen' => "1",
+                        'content'=>"系统出错啦!",
+                        'time'=>date('Y-m-d H:i:s'),
+                    );
+                }
 
-                $new_message = array(
-                    'type'=>'say', 
-                    'sender'=>$data["sender"],
-                    'accepter' =>$data["accepter"],
-                    'key' =>$data["key"],
-                    'isopen' => "1",
-                    'content'=>nl2br(htmlspecialchars($message_data['content'])),
-                    'time'=>date('Y-m-d H:i:s'),
-                );
                 return Gateway::sendToGroup($room_id ,json_encode($new_message));
         }
    }

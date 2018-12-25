@@ -28,12 +28,16 @@
 
     <!-- json包-->
     <script type="text/javascript" src="__PUBLIC__/chat/js/json2.js"></script>
-     <!-- cookie包-->
-    <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.cookie.js"></script>
-    <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.jsoncookie.js"></script>
 
     <!--localstorage-->
     <script type="text/javascript" src="__PUBLIC__/chat/js/localmain.js"></script>
+
+    <!--aes-->
+    <script type="text/javascript" src="__PUBLIC__/chat/js/aes.js"></script>
+    <script type="text/javascript" src="__PUBLIC__/chat/js/enc-base64.js"></script>
+    <!--pako-->
+    <script type="text/javascript" src="__PUBLIC__/chat/js/pako.js"></script>
+
 
 
 
@@ -101,7 +105,6 @@
             //加载好友列表
             myfriends = mystorage.get("friends")
             var friends_list = "";
-
             if(myfriends){
                 $.each(myfriends,function(i,item){
                     var room_key = "";
@@ -169,7 +172,7 @@
             var talk = document.getElementById('talkbox');
             if(data){
                 if(data.sender != users.id){
-                    chat.innerHTML += '<li class="other"><img src="'+'__STATIC__/images/head/'+users.id+'.jpg'+'"><span>'+data.content+'</span></li>';
+                    chat.innerHTML += '<li class="other"><img src="'+'__STATIC__/images/head/'+users.id+'.jpg'+'"><span>'+data.content.trim().replace(/"/g, '\\"').replace(/\n/g,'\\n').replace(/\r/g, '\\r')+'</span></li>';
                 }
             }else{
 
@@ -209,8 +212,7 @@
         $(function() {
             //三图标
             tag();
-           // $.setJSONCookie("users","")
-            mystorage.clear();
+           // mystorage.clear();
             users = mystorage.get("users")
             //登录窗口
             if(!users){
@@ -250,9 +252,10 @@
                 ws.onopen = onopenSocket(fid,isopen,key)
                 $(".talking_windows_username").text(user_name);
                 $(".talk_window").show();
+
             })
 
-            $(document).on('dblclick','.talk_to_friead',function(){
+            $(document).on('click','.talk_to_friead',function(){
                 var fid = $(this).data('id');
                 var user_name = $(this).find("p").text();
                 var lilist = [];
@@ -374,7 +377,7 @@
                     isopen:isopen
                 }
                 var joind_data =JSON.stringify(json)
-                //console.log("websocket握手成功，发送登录数据:"+joind_data);
+                console.log("websocket握手成功，发送登录数据:"+joind_data);
                 ws.send(joind_data);
 
         }
@@ -416,7 +419,7 @@
                     }
                     arr.push(data);
                     mystorage.set(data.key,arr);
-                    console.log(mystorage.get(data.key));
+                    //console.log(mystorage.get(data.key));
                     break;
                 // 用户退出 更新用户列表
                 case 'logout':
@@ -552,30 +555,40 @@
                             },
                             methods:{
                                 userLogin(){
-                                    axios.post('__LOGIN__', {
+
+                                    var data = {
                                         username: this.users.username,
                                         password: this.users.password,
                                         ac: "login",
+                                    };
+                                    //var poststr = gzip(JSON.stringify(data)).replace("+","{#}")
+                                    var poststr = gzip(data)
+
+                                    axios.post('__LOGIN__', {
+                                        data: poststr,
                                     })
                                         .then(function (response) {
-                                            var result = response.data
+                                            var result = response.data;
                                             if(result.code == 200){
-                                                users = mystorage.set("users", result.data.users);//存储json格式cookie
-                                                if(result.data.messages){
-                                                    messages =  mystorage.set("messages", result.data.messages);
+
+                                                var alllist = unzip(result.data)
+
+                                                users = mystorage.set("users", alllist.users);//存储json格式cookie
+                                                if(alllist.messages){
+                                                    messages =  mystorage.set("messages", alllist.messages);
                                                 }
-                                                if(result.data.rooms){
-                                                    roomslist = mystorage.set("rooms", result.data.rooms);
+                                                if(alllist.rooms){
+                                                    roomslist = mystorage.set("rooms", alllist.rooms);
                                                     roomsList();
                                                 }
 
-                                                if(result.data.friends){
-                                                    myfriends =  mystorage.set("friends", result.data.friends);
+                                                if(alllist.friends){
+                                                    myfriends =  mystorage.set("friends", alllist.friends);
                                                     friendsAndgroudList();
                                                 }
 
-                                                $('.own_user_name').text(result.data.users.username);
-                                                $('.own_numb').text( result.data.users.username);
+                                                $('.own_user_name').text(users.username);
+                                                $('.own_numb').text( users.username);
                                                 $("#popup").hide();
                                                 $(".own_head_top").show();
                                                 $(".own_head_bottom").show();

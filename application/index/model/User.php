@@ -14,12 +14,13 @@ class User extends Model
     public function  login($data = []){
 
         $user = db("user")->where(array("username"=>$data['username']))->find();
-
           if(!empty($user)){
               if($user['password'] != md5($data['password'])){
                   return "";
               }
               unset($user["password"]);
+
+              //登录后更改在线状态
               if($user["online"] == 1){
                   $userinfo = array(
                       "id"=>$user["id"],
