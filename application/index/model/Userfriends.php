@@ -24,7 +24,7 @@ class Userfriends extends Model
      */
     public function findFriend($fid,$uid){
 
-       $data= db("userfriends")->field("status,remark")->where(array("uid"=>$uid,"fid"=>$fid))->find();
+       $data= db("userfriends")->field("uid,fid,status,remark")->where(array("uid"=>$uid,"fid"=>$fid))->find();
         if(empty($data)){
             return "";
         }
@@ -46,7 +46,7 @@ class Userfriends extends Model
         if(empty($friends)){
             //获取好友信息（id,状态，备注，头像）
             $friends = db("userfriends")
-                ->field("uf.fid,uf.status,uf.remark,u.username,u.online,u.status,u.photo")
+                ->field("uf.fid,uf.status,uf.remark,u.username,u.online,u.status,u.photo,uf.createtime")
                 ->alias('uf')
                 ->join('user u','uf.fid = u.id ')
                 ->where(array("uid"=>$uid))

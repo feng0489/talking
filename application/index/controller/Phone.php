@@ -141,7 +141,6 @@ class Phone extends Controller
         //获取用户信息
         $user= new \app\index\model\User();
         $isok= $user->logout($uid);
-        echo $isok;die;
         if($isok){
             sendMSG("ok","200");
         }else{

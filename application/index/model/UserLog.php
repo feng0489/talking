@@ -12,6 +12,4 @@ use think\Model;
 class UserLog extends Model
 {
 
-
-
 }
