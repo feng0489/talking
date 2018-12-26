@@ -24,14 +24,40 @@ class User extends Model
               if($user["online"] == 1){
                   $userinfo = array(
                       "id"=>$user["id"],
-                      "online"=>0
+                      "online"=>0,
+                      "last_time"=>time(),
+                      "sign_time"=>time(),
+                      "last_ip"=>getIP(),
+                      "login_count"=>$user['login_count']+1
                   );
                   db("user")->update($userinfo);
               }
+              $user['login_count'] = $user['login_count']+1;
               return $user;
           }else{
               return "";
           }
+    }
+
+    public function logout($uid){
+        $user = db("user")->where(array("id"=>$uid))->find();
+        if(empty($user)){
+            return false;
+        }
+        if($user["online"] == 0){
+            $userinfo = array(
+                "id"=>$user["id"],
+                "online"=>1,
+            );
+            $isok = db("user")->update($userinfo);
+            if($isok){
+                return true;
+            }else{
+                return false;
+            }
+        }else{
+            return true;
+        }
     }
 
     public function regit($data = []){
@@ -44,6 +70,10 @@ class User extends Model
         $user["mobile"] = isset($data['phone']) ? $data['phone']:"";
         $user["reg_ip"] = isset($data['ip'])? $data['ip']: "";
         $user["photo"] = isset($data['photo'])? $data['photo']: "";
+        $user["reg_time"] = time();
+        $user["last_time"] = time();
+        $user["sign_time"] = time();
+        $user["login_count"] = 1;
         $id = db("user")->insertGetId($user);
         $user['id'] = $id;
         if($id>0){

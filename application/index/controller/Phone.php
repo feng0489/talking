@@ -38,6 +38,7 @@ class Phone extends Controller
          $data['sex'] = input("sex",0);//0男,1女
          $data['phone'] = trim(input("phone",""));
          $data['ip'] =  getIP();
+         $data['tuijian_id'] = input("tuijian_id",0);
          if(!empty($data['username'])){
              if(!checkUser($data['username'])){
                  sendMSG("用户名格式错误!","10400");
@@ -66,6 +67,7 @@ class Phone extends Controller
              $me["fid"] = $userinfo["id"];
              $me["status"] = 1;
              $me["remark"] = "";
+             $me["createtime"] = time();
              $friends= new \app\index\model\Userfriends();
              $status = $friends->insertFriends($me);
             //添加自己到聊天房间
@@ -123,10 +125,27 @@ class Phone extends Controller
 //        $message =new \app\index\model\Message();
 //        $userinfo["messages"] = $message->getMessage($users["id"]);
         if(!empty($userinfo)){
-            sendMSG("ok","200",encrypt(json_encode($userinfo)));
+            sendMSG("ok","200",$userinfo);
 
         }else{
             sendMSG("用户名或者密码错误!","10405");
+        }
+
+    }
+
+    private  function Ajax_logout(){
+        $uid = input("id",0);
+        if(!is_numeric($uid)){
+            sendMSG("错误的信息!","10415");
+        }
+        //获取用户信息
+        $user= new \app\index\model\User();
+        $isok= $user->logout($uid);
+        echo $isok;die;
+        if($isok){
+            sendMSG("ok","200");
+        }else{
+            sendMSG("发生未知错误","10416");
         }
 
     }
@@ -179,6 +198,7 @@ class Phone extends Controller
         $data["fid"] = input("fid",0);
         $data["status"] = trim(input("status",0));
         $data["remark"] = trim(input("remark",""));
+        $data["createtime"] = time();
         if(empty($data["uid"])||empty($data["fid"])||!is_numeric($data["uid"])||!is_numeric($data["fid"])){
             sendMSG("数据错误","10409");
         }

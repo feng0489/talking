@@ -45,6 +45,29 @@ function sendMSG($msg, $code=0, $data = []) {
     exit(json_encode($arr,320));
 }
 
+//判断访问设备
+function checkDevice() {
+    // return 'Phone';
+    $agent = strtolower($_SERVER['HTTP_USER_AGENT']);
+    $is_iphone = (strpos($agent, 'iphone')>0) ? true : false;
+    $is_android = (strpos($agent, 'android')>0) ? true : false;
+    $is_ipad = (strpos($agent, 'ipad')>0) ? true : false;
+
+    if($is_iphone){
+        return 3;//移动端登录,ios
+    }
+
+    if($is_android){
+        return 2;//android
+    }
+
+    if($is_ipad){
+        return 4;//ios
+    }
+
+    return 1;//pc
+}
+
 
 function trimall($str){
      $qian=array(" ","　","\\t","\\n","\\r");
