@@ -40,9 +40,9 @@ class User extends Model
         $user["password"] = isset($data['password']) ? md5($data['password']):"";
         $user["weixin"] = isset($data['weixin']) ? $data['weixin']:"";
         $user["qq"] = isset($data['qq']) ? $data['qq']: "";
-        $user["sex"] = isset($data['sex']) ? $data['sex']: "";
-        $user["phone"] = isset($data['phone']) ? $data['phone']:"";
-        $user["ip"] = isset($data['ip'])? $data['ip']: "";
+        $user["gender"] = isset($data['sex']) ? $data['sex']: 0;
+        $user["mobile"] = isset($data['phone']) ? $data['phone']:"";
+        $user["reg_ip"] = isset($data['ip'])? $data['ip']: "";
         $user["photo"] = isset($data['photo'])? $data['photo']: "";
         $id = db("user")->insertGetId($user);
         $user['id'] = $id;

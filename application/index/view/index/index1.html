@@ -3,25 +3,439 @@
 <head>
     <meta charset="utf-8">
     <title>talking</title>
+
+    <!--[if IE]
+<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+< ![endif]-->
     <link rel="stylesheet" href="__PUBLIC__/chat/css/amazeui.min.css" />
     <link rel="stylesheet" href="__PUBLIC__/chat/css/main.css" />
     <link rel="stylesheet" href="__PUBLIC__/chat/css/style.css" />
     <link rel="stylesheet" href="__PUBLIC__/chat/css/amazeui.min.css" />
+
     <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.min.js"></script>
     <script type="text/javascript" src="__PUBLIC__/chat/js/jquery-1.11.0.min.js"></script>
+
+
+    <!-- vue包-->
     <script type="text/javascript" src="__PUBLIC__/chat/js/vue.js"></script>
     <script type="text/javascript" src="__PUBLIC__/chat/js/axios.js"></script>
-    <script type="text/javascript" src="__PUBLIC__/chat/js/jquery.cookie.js"></script>
+    <!-- zUIt包-->
+    <script type="text/javascript" src="__PUBLIC__/chat/js/amazeui.min.js"></script>
+    <script type="text/javascript" src="__PUBLIC__/chat/js/zUI.js"></script>
+    <script type="text/javascript" src="__PUBLIC__/chat/js/wechat.js"></script>
+    <!-- web_socket包-->
+    <script type="text/javascript" src="__PUBLIC__/chat/js/web_socket.js"></script>
 
+    <!-- json包-->
+    <script type="text/javascript" src="__PUBLIC__/chat/js/json2.js"></script>
+
+    <!--localstorage-->
+    <script type="text/javascript" src="__PUBLIC__/chat/js/localmain.js"></script>
+
+    <!--aes-->
+    <script type="text/javascript" src="__PUBLIC__/chat/js/aes.js"></script>
+    <script type="text/javascript" src="__PUBLIC__/chat/js/enc-base64.js"></script>
+    <!--pako-->
+    <script type="text/javascript" src="__PUBLIC__/chat/js/pako.js"></script>
+
+
+
+
+    <style type="text/css">
+        .top_talking{
+            background: #cfcccc;
+        }
+    </style>
     <script type="text/javascript">
-        var ws, users,myfriends, client_list={};
+
+        function sortNumber(a, b)
+        {
+            return b - a// 按顺序排序
+        }
+        function myFunction(){
+            console.log(213123);
+        }
+        // if (typeof console == "undefined") {    this.console = { log: function (msg) {  } };}
+        var ws, users,myfriends, roomslist,messages, client_list={};
         // 开启flash的websocket debug
         WEB_SOCKET_DEBUG = true;
 
+        function roomsList() {
+            roomslist =  mystorage.get("rooms")
+            var talking_friend = ""
+            if(roomslist){
+                $.each(roomslist,function (i,item) {
+                    if(item.isopen > 0){
+                        var photo = "__STATIC__/images/head/"+item.accepter+".jpg";
+                        talking_friend += '<li  data-id="'+item.accepter+'" data-key="'+item.room_key+'" data-isopen="'+item.isopen+'" class = "rooms_list" id="friend_talk_active" class="">';
+                        talking_friend += '<div class="user_head"><img src="'+photo+'"/></div>';
+                        talking_friend +='<div class="user_text">';
+                        talking_friend += '<p class="user_name">'+item.name+'</p>';
+                        talking_friend +=  ' <p class="user_message"></p> </div>';
+                        talking_friend += ' <div class="user_time"></div> </li>';
+                    }else{
+                        messages = mystorage.get("messages")
+                        if(messages){
+                            messages.sort();
+                            var key = "";
+                            $.each(messages,function (e,msg) {
+                                if(msg.room_key == item.room_key){
+                                    if(key != msg.room_key){
+                                        var photo = "__STATIC__/images/head/"+item.accepter+".jpg";
+                                        talking_friend += '<li  data-id="'+item.accepter+'" data-key="'+item.room_key+'" data-isopen="'+item.isopen+'" class = "rooms_list" id="friend_talk_active" class="">';
+                                        talking_friend += '<div class="user_head"><img src="'+photo+'"/></div>';
+                                        talking_friend +='<div class="user_text">';
+                                        talking_friend += '<p class="user_name">'+item.name+'</p>';
+                                        talking_friend +=  ' <p class="user_message">'+msg.content+'</p> </div>';
+                                        talking_friend += ' <div class="user_time"></div></li>';
+                                    }
+                                    key = msg.room_key;
+                                }
+                            })
+                        }
+                    }
+
+                });
+            }
+            $(".user_list").append(talking_friend);
+
+        }
+
+        function friendsAndgroudList(){
+            //加载好友列表
+            myfriends = mystorage.get("friends")
+            var friends_list = "";
+            if(myfriends){
+                $.each(myfriends,function(i,item){
+                    var room_key = "";
+                    var photo =  "";
+                    var isopen = "";
+                    if(roomslist){
+                        $.each(roomslist,function (j,jtem) {
+                            if(jtem.accepter == item.fid && jtem.sender == users.id){
+                                room_key =  jtem.room_key;
+                                isopen =  jtem.isopen;
+                            }
+                        })
+                    }
+                    if(item.photo === ""){
+                        photo = "__STATIC__/images/head/"+item.fid+".jpg";
+                    }else {
+                        photo =   item.photo;
+                    }
+                    //好友，关注的公众号列表
+                    friends_list += "<li data-id='"+item.fid+"' data-key='"+room_key+"' data-isopen='"+isopen+"' class='talk_to_friead'>";
+                    friends_list += " <div class='friends_box'>";
+                    friends_list += " <div class='user_head'><img src='"+photo+"'/></div>";
+                    friends_list += "  <div class='friends_text'>";
+                    friends_list += " <p class='user_name'>"+item.username+"</p>";
+                    friends_list += " </div></div></li>";
+                });
+                $(".friends_list").append(friends_list);
+
+            }
+
+
+        }
+
+        function tag() {
+            var si1 = document.getElementById('si_1');
+            var si2 = document.getElementById('si_2');
+            var si3 = document.getElementById('si_3');
+            si1.onclick = function () {
+                si1.style.background = "url(__STATIC__/images/icon/head_2_1.png) no-repeat"
+                si2.style.background = "";
+                si3.style.background = "";
+            };
+            si2.onclick = function () {
+                si2.style.background = "url(__STATIC__/images/icon/head_3_1.png) no-repeat"
+                si1.style.background = "";
+                si3.style.background = "";
+            };
+            si3.onclick = function () {
+                si3.style.background = "url(__STATIC__/images/icon/head_4_1.png) no-repeat"
+                si1.style.background = "";
+                si2.style.background = "";
+            };
+
+            $(".sidestrip_icon a").click(function(){
+                $(".sidestrip_icon a").eq($(this).index()).addClass("cur").siblings().removeClass('cur');
+                $(".middle").hide().eq($(this).index()).show();
+            });
+
+        }
+
+        function say(data){
+            var text = document.getElementById('input_box');
+            var chat = document.getElementById('chatbox');
+            var btn = document.getElementById('send');
+            var talk = document.getElementById('talkbox');
+            if(data){
+                if(data.sender != users.id){
+                    chat.innerHTML += '<li class="other"><img src="'+'__STATIC__/images/head/'+users.id+'.jpg'+'"><span>'+data.content.trim().replace(/"/g, '\\"').replace(/\n/g,'\\n').replace(/\r/g, '\\r')+'</span></li>';
+                }
+            }else{
+
+                btn.onclick=function(){
+                    if(text.value ==''){
+                        alert('不能发送空消息');
+                    }else{
+                        var fid = $(".top_talking").data("id");
+                        var key = $(".top_talking").data("key");
+                        var isopen = $(".top_talking").data("isopen");
+                        chat.innerHTML += '<li class="me"><img src="'+'__STATIC__/images/own_head.jpg'+'"><span>'+text.value+'</span></li>';
+                        var message = {
+                            type:"say",
+                            sender:users.id,
+                            accepter:fid,
+                            key:key,
+                            isopen:isopen,
+                            content:text.value.replace(/"/g, '\\"').replace(/\n/g,'\\n').replace(/\r/g, '\\r'),
+                        }
+
+                        ws.send(JSON.stringify(message));
+                        text.value = '';
+
+                    };
+                };
+            }
+
+            chat.scrollTop=chat.scrollHeight;
+            talk.style.background="#fff";
+            text.style.background="#fff";
+
+
+        };
+
+        //窗口效果
+        //点击登录class为tc 显示
+        $(function() {
+            //三图标
+            tag();
+            // mystorage.clear();
+            users = mystorage.get("users")
+            //登录窗口
+            if(!users){
+                $(".talk_window").hide();
+                $("#popup").show();
+                $(".error_text").hide();
+                $(".own_head_top").hide();
+                $(".own_head_bottom").hide();
+                tc_center();
+            }else{
+                $('.own_user_name').text(users.username);
+                $('.own_numb').text(users.username);
+                $(".tc").hide();
+                $(".talk_window").hide();
+                roomsList();
+                friendsAndgroudList();
+            }
+            $(document).on('click','#friend_talk_active',function(){
+                var key = $(this).data('key');
+                var fid = $(this).data('id');
+                var isopen = $(this).data('isopen');
+                var user_name = $(this).find("p").text();
+                var id = 0;
+                $('.user_list').find('li').each(function() {
+                    id =  $(this).data('id');
+                    if(id==fid){
+                        $("li[data-id='"+id+"']").removeClass('down_talking');
+                        $("li[data-id='"+id+"']").addClass("top_talking");
+                        $('.user_list').prepend($(this));
+                    }else{
+                        $("li[data-id='"+id+"']").removeClass('top_talking');
+                        $("li[data-id='"+id+"']").addClass("down_talking");
+                    }
+
+                })
+                $("#talking_room_list").show();
+                ws.onopen = onopenSocket(fid,isopen,key)
+                $(".talking_windows_username").text(user_name);
+                $(".talk_window").show();
+
+            })
+
+            $(document).on('click','.talk_to_friead',function(){
+                var fid = $(this).data('id');
+                var user_name = $(this).find("p").text();
+                var lilist = [];
+                $('.user_list').find('li').each(function() {
+                    userid =  $(this).data('id');
+                    lilist.push(userid);
+                })
+                var room_key = "";
+                var isopen = "";
+                var photo = "__STATIC__/images/head/"+fid+".jpg";
+                if(roomslist){
+                    $.each(roomslist,function (i,item) {
+                        if(item.accepter == fid && item.sender == users.id){
+                            room_key =  item.room_key;
+                            isopen =  item.isopen;
+                        }
+                    })
+                }
+                if($.inArray(fid, lilist) == -1){
+                    var talking_friend = ""
+                    var id = 0;
+                    talking_friend += '<li  data-id="'+fid+'" data-key="'+room_key+'" data-isopen="'+isopen+'" id="friend_talk_active" class="">';
+                    talking_friend += '<div class="user_head"><img src="'+photo+'"/></div>';
+                    talking_friend +='<div class="user_text">';
+                    talking_friend += '<p class="user_name">'+user_name+'</p>';
+                    talking_friend +=  ' <p class="user_message"></p> </div>';
+                    talking_friend += ' <div class="user_time"></div> </li>';
+                    $(".user_list").append(talking_friend);
+
+                    $('.user_list').find('li').each(function() {
+                        id =  $(this).data('id');
+                        if(id==fid){
+                            $("li[data-id='"+id+"']").removeClass('down_talking');
+                            $("li[data-id='"+id+"']").addClass("top_talking");
+                            $('.user_list').prepend($(this));
+                        }else{
+                            $("li[data-id='"+id+"']").removeClass('top_talking');
+                            $("li[data-id='"+id+"']").addClass("down_talking");
+                        }
+
+                    })
+                }else{
+                    $('.user_list').find('li').each(function() {
+                        id =  $(this).data('id');
+                        if(id==fid){
+                            $("li[data-id='"+id+"']").removeClass('down_talking');
+                            $("li[data-id='"+id+"']").addClass("top_talking");
+                            $('.user_list').prepend($(this));
+                        }else{
+                            $("li[data-id='"+id+"']").removeClass('top_talking');
+                            $("li[data-id='"+id+"']").addClass("down_talking");
+                        }
+
+                    })
+                }
+
+                $(".talking_windows_username").text(user_name);
+                $(".talk_window").show();
+                document.getElementById('si_1').style.background = "url(__STATIC__/images/icon/head_2_1.png) no-repeat";
+                document.getElementById('si_2').style.background = "";
+                $("#friend_table_list").hide();
+                $("#talking_room_list").show();
+                //socket握手
+
+                ws.onopen = onopenSocket(fid,isopen,room_key);
+            })
+
+            connect();
+            say();
+        });
+        $(document).on('click','.tc',function(){
+            $("#popup").show();
+            $(".error_text").hide();
+            tc_center();
+        });
+        $(document).on('click','.guanbi',function(){
+            $("#popup").hide();
+        });
+
+        //窗口水平居中
+        $(window).resize(function(){
+            tc_center();
+        });
+
+        function tc_center(){
+            var _top=($(window).height()-$(".popup").height())/2;
+            var _left=($(window).width()-$(".popup").width())/2;
+            $(".popup").css({top:_top,left:_left});
+        }
+
+        // 连接服务端
+        function connect() {
+            // 创建websocket
+            ws = new WebSocket("ws://"+document.domain+":7272");
+            console.log(ws);
+
+            // 当有消息时根据消息类型显示不同信息
+            ws.onmessage = onmessage;
+            ws.onclose = function() {
+                console.log("连接关闭，定时重连");
+                connect();
+            };
+            ws.onerror = function() {
+                console.log("出现错误");
+            };
+        }
+
+        // 连接建立时发送登录信息
+        function onopenSocket(fid,isopen,room_key)
+        {
+
+            var json = {
+                type: "join",
+                client_name: users.id,
+                fid: fid,
+                uid: users.id,
+                room_key:room_key,
+                room_id:1,
+                isopen:isopen
+            }
+            var joind_data =JSON.stringify(json)
+            console.log("websocket握手成功，发送登录数据:"+joind_data);
+            ws.send(joind_data);
+
+        }
+
+        // 服务端发来消息时
+        function onmessage(e)
+        {
+            //console.log(e.data);
+            var data = eval("("+e.data+")");
+            switch(data['type']){
+                // 服务端ping客户端
+                case 'ping':
+                    ws.send('{"type":"pong"}');
+                    break;
+                // 发言
+                case 'join':
+                    fid = data['accept_user'];
+                    key = data['key'];
+                    isopen = data['isopen'];
+                    $('.user_list').find('li').each(function() {
+                        id =  $(this).data('id');
+                        if(id==fid){
+                            //$("li[data-id='"+id+"']").removeClass('down_talking');
+                            $(".top_talking").data("key",key)
+                            $(".top_talking").data("isopen",isopen)
+                            $('.user_list').prepend($(this));
+                        }
+
+                    });
+                    break;
+                case 'say':
+                    say(data);
+                    var arr = new Array();
+                    var meage = mystorage.get(data.key);
+                    if(meage){
+                        $.each(meage,function(index,value){
+                            arr.push(value);
+                        });
+                    }
+                    arr.push(data);
+                    mystorage.set(data.key,arr);
+                    //console.log(mystorage.get(data.key));
+                    break;
+                // 用户退出 更新用户列表
+                case 'logout':
+                    //{"type":"logout","client_id":xxx,"time":"xxx"}
+                    // say(data['from_client_id'], data['from_client_name'], data['from_client_name']+' 退出了', data['time']);
+                    delete client_list[data['from_client_id']];
+                    // flush_client_list();
+                    break;
+            }
+        }
+
+
     </script>
 
-</head>
-<body id="body">
+</head  >
+<body id="body" onbeforeunload="return myFunction()">
 <div class="box">
     <div class="wechat">
 
@@ -141,24 +555,47 @@
                             },
                             methods:{
                                 userLogin(){
-                                    axios.post('__LOGIN__', {
+
+                                    var data = {
                                         username: this.users.username,
                                         password: this.users.password,
                                         ac: "login",
+                                    };
+                                    //var poststr = gzip(JSON.stringify(data)).replace("+","{#}")
+                                    var poststr = gzip(data)
+
+                                    axios.post('__LOGIN__', {
+                                        data: poststr,
                                     })
                                         .then(function (response) {
-
-                                            var result = response.data
+                                            var result = response.data;
                                             if(result.code == 200){
-                                                $.setJSONCookie("users", result.data.users);//存储json格式cookie
-                                                $.setJSONCookie("friends", result.data.friends);
-                                                $('.own_user_name').text(result.data.users.username);
-                                                $('.own_numb').text( result.data.users.weixin);
+
+                                                var alllist = unzip(result.data)
+
+                                                users = mystorage.set("users", alllist.users);//存储json格式cookie
+                                                if(alllist.messages){
+                                                    messages =  mystorage.set("messages", alllist.messages);
+                                                }
+                                                if(alllist.rooms){
+                                                    roomslist = mystorage.set("rooms", alllist.rooms);
+                                                    roomsList();
+                                                }
+
+                                                if(alllist.friends){
+                                                    myfriends =  mystorage.set("friends", alllist.friends);
+                                                    friendsAndgroudList();
+                                                }
+
+                                                $('.own_user_name').text(users.username);
+                                                $('.own_numb').text( users.username);
                                                 $("#popup").hide();
                                                 $(".own_head_top").show();
                                                 $(".own_head_bottom").show();
                                                 $(".error_text").hide();
                                                 $(".tc").hide();
+                                                $(".talk_window").hide();
+
                                             }else{
                                                 $(".error_text").text(result.msg);
                                                 $(".error_text").show();
@@ -169,7 +606,6 @@
 
                                         })
                                         .catch(function (error) {
-
                                         });
                                 }
 
@@ -185,216 +621,38 @@
             </div>
         </div>
         <!--聊天列表-->
-        <div class="middle on">
+        <div class="middle on" id="talking_room_list">
             <div class="wx_search">
                 <input type="text" placeholder="用户名 手机号 微信号"/>
                 <button >+</button>
             </div>
             <div class="office_text">
                 <ul class="user_list">
-                    <li class="user_active">
-                        <div class="user_head"><img src="__STATIC__/images/head/15.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">早安无恙</p>
-                            <p class="user_message">我是傻逼！，金少凯牛逼！</p>
-                        </div>
-                        <div class="user_time">下午 2：54</div>
-                    </li>
-                    <li>
-                        <div class="user_head"><img src="__STATIC__/images/head/2.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">夏继涛</p>
-                            <p class="user_message">[小程序]</p>
-                        </div>
-                        <div class="user_time">上午 11：03</div>
-                    </li>
-                    <li>
-                        <div class="user_head"><img src="__STATIC__/images/head/3.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">十里老街秋名山车神车队</p>
-                            <p class="user_message">乞讨两块交个话费</p>
-                        </div>
-                        <div class="user_time">昨天</div>
-                    </li>
-                    <li>
-                        <div class="user_head"><img src="__STATIC__/images/head/4.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">阿杰</p>
-                            <p class="user_message">[动画表情]</p>
-                        </div>
-                        <div class="user_time">昨天</div>
-                    </li>
-                    <li>
-                        <div class="user_head"><img src="__STATIC__/images/head/5.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">订阅号</p>
-                            <p class="user_message">庐山国际水彩艺术节：</p>
-                        </div>
-                        <div class="user_time">星期三</div>
-                    </li>
-                    <li>
-                        <div class="user_head"><img src="__STATIC__/images/head/6.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">小龙网食品</p>
-                            <p class="user_message">槟榔的100种吃法</p>
-                        </div>
-                        <div class="user_time">星期二</div>
-                    </li>
-                    <li>
-                        <div class="user_head"><img src="__STATIC__/images/head/7.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">文件传输助手</p>
-                            <p class="user_message"></p>
-                        </div>
-                        <div class="user_time">星期二</div>
-                    </li>
-                    <li>
-                        <div class="user_head"><img src="__STATIC__/images/head/8.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">陈明杰</p>
-                            <p class="user_message">妈的，你在聊我</p>
-                        </div>
-                        <div class="user_time">星期四</div>
-                    </li>
-                    <li>
-                        <div class="user_head"><img src="__STATIC__/images/head/9.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">妈</p>
-                            <p class="user_message">面</p>
-                        </div>
-                        <div class="user_time">星期四</div>
-                    </li>
-                    <li>
-                        <div class="user_head"><img src="__STATIC__/images/head/10.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">土豆</p>
-                            <p class="user_message">[图片]</p>
-                        </div>
-                        <div class="user_time"></div>
-                    </li>
-                    <li>
-                        <div class="user_head"><img src="__STATIC__/images/head/11.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">Emmera</p>
-                            <p class="user_message"></p>
-                        </div>
-                        <div class="user_time"></div>
-                    </li>
-                    <li>
-                        <div class="user_head"><img src="__STATIC__/images/head/12.jpg"/></div>
-                        <div class="user_text">
-                            <p class="user_name">彭于晏丶plus</p>
-                            <p class="user_message">我送20个都他妈的能赢，这群鬼人真的恐怖</p>
-                        </div>
-                        <div class="user_time"></div>
-                    </li>
+
                 </ul>
             </div>
         </div>
 
         <!--好友列表-->
-        <div class="middle">
+        <div class="middle" id="friend_table_list">
             <div class="wx_search">
                 <input type="text" placeholder="用户名 手机号 微信号"/>
                 <button class="search_add_frends">+</button>
             </div>
             <div class="office_text">
                 <ul class="friends_list">
-                    <li>
-                        <p>新的朋友</p>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/1.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">新的朋友</p>
-                            </div>
-                        </div>
-                    </li>
-                    <li>
-                        <p>公众号</p>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/2.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">公众号</p>
-                            </div>
-                        </div>
-                    </li>
-                    <li>
-                        <p>A</p>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/3.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">彭于晏丶plus</p>
-                            </div>
-                        </div>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/4.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">陈依依</p>
-                            </div>
-                        </div>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__PUBLIC__/images/head/5.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">毛毛</p>
-                            </div>
-                        </div>
-                    </li>
-                    <li>
-                        <p>B</p>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/6.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">苏笑言</p>
-                            </div>
-                        </div>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/7.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">往事不再提</p>
-                            </div>
-                        </div>
-                    </li>
-                    <li>
-                        <p>C</p>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/8.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">夏继涛</p>
-                            </div>
-                        </div>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/9.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">早安无恙</p>
-                            </div>
-                        </div>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/10.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">王鹏</p>
-                            </div>
-                        </div>
-                    </li>
-                    <li>
-                        <p>D</p>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/11.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">涨了潮了</p>
-                            </div>
-                        </div>
-                        <div class="friends_box">
-                            <div class="user_head"><img src="__STATIC__/images/head/12.jpg"/></div>
-                            <div class="friends_text">
-                                <p class="user_name">Ktz丶中融资</p>
-                            </div>
-                        </div>
-                    </li>
+                    <!--<li id="">-->
+                    <!--<p>新的朋友</p>-->
+                    <!--<div class="friends_box">-->
+                    <!--<div class="user_head"><img src="__STATIC__/images/head/1.jpg"/></div>-->
+                    <!--<div class="friends_text">-->
+                    <!--<p class="user_name">新的朋友</p>-->
+                    <!--</div>-->
+                    <!--</div>-->
+                    <!--</li>-->
                 </ul>
             </div>
         </div>
-
-
 
         <!--程序列表-->
         <div class="middle">
@@ -440,7 +698,7 @@
         <div class="talk_window">
             <div class="windows_top">
                 <div class="windows_top_box">
-                    <span>早安无恙</span>
+                    <span class="talking_windows_username"></span>
                     <ul class="window_icon">
                         <li><a href=""><img src="__STATIC__/images/icon/icon7.png"/></a></li>
                         <li><a href=""><img src="__STATIC__/images/icon/icon8.png"/></a></li>
@@ -462,9 +720,9 @@
             <!--聊天内容-->
             <div class="windows_body">
                 <div class="office_text" style="height: 100%;">
-                    <ul class="content" id="chatbox">
-                        <li class="me"><img src="__STATIC__/images/own_head.jpg" title="金少凯"><span>疾风知劲草，板荡识诚臣</span></li>
-                        <li class="other"><img src="__STATIC__/images/head/15.jpg" title="张文超"><span>勇夫安知义，智者必怀仁</span></li>
+                    <ul class="content" id="chatbox" >
+                        <!--<li class="me"><img src="__STATIC__/images/own_head.jpg" title=""><span></span></li>-->
+                        <!--<li class="other"><img src="__STATIC__/images/head/15.jpg" title=""><span></span></li>-->
                     </ul>
                 </div>
             </div>
@@ -478,22 +736,19 @@
                     <a href="javascript:;"></a>
                     <a href="javascript:;"></a>
                 </div>
-                <div class="input_box">
-                    <textarea name="" rows="" cols="" id="input_box"></textarea>
-                    <button id="send">发送（S）</button>
-                </div>
+                <form onsubmit="say(); return false;">
+                    <div class="input_box">
+                        <textarea name="" rows="" cols="" id="input_box"></textarea>
+                        <button id="send">发送（S）</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
 
-<script type="text/javascript" src="__PUBLIC__/chat/js/amazeui.min.js"></script>
-<script type="text/javascript" src="__PUBLIC__/chat/js/zUI.js"></script>
-<script type="text/javascript" src="__PUBLIC__/chat/js/wechat.js"></script>
-<script type="text/javascript" src="__PUBLIC__/chat/js/web_socket.js"></script>
-<script type="text/javascript" src="__PUBLIC__/chat/js/json2.js"></script>
-<script type="text/javascript" src="__PUBLIC__/chat/js/jquery.jsoncookie.js"></script>
+
 
 <!--登录-->
 <script type="text/javascript">
@@ -521,96 +776,6 @@
             $(this).unbind("mousemove");
         });
     })
-</script>
-<!--登录-->
-<script type="text/javascript">
-    function a() {
-        var si1 = document.getElementById('si_1');
-        var si2 = document.getElementById('si_2');
-        var si3 = document.getElementById('si_3');
-        si1.onclick = function () {
-            si1.style.background = "url(__STATIC__/images/icon/head_2_1.png) no-repeat"
-            si2.style.background = "";
-            si3.style.background = "";
-        };
-        si2.onclick = function () {
-            si2.style.background = "url(__STATIC__/images/icon/head_3_1.png) no-repeat"
-            si1.style.background = "";
-            si3.style.background = "";
-        };
-        si3.onclick = function () {
-            si3.style.background = "url(__STATIC__/images/icon/head_4_1.png) no-repeat"
-            si1.style.background = "";
-            si2.style.background = "";
-        };
-
-    }
-
-    function b(){
-        var text = document.getElementById('input_box');
-        var chat = document.getElementById('chatbox');
-        var btn = document.getElementById('send');
-        var talk = document.getElementById('talkbox');
-        btn.onclick=function(){
-            if(text.value ==''){
-                alert('不能发送空消息');
-            }else{
-                chat.innerHTML += '<li class="me"><img src="'+'__STATIC__/images/own_head.jpg'+'"><span>'+text.value+'</span></li>';
-                text.value = '';
-                chat.scrollTop=chat.scrollHeight;
-                talk.style.background="#fff";
-                text.style.background="#fff";
-            };
-        };
-    };
-
-    //窗口效果
-    //点击登录class为tc 显示
-    $(function() {
-        //三图标
-        a();
-        b();
-        users = $.getJSONCookie("users")
-        myfriends = $.getJSONCookie("friends")
-        $.each(myfriends,function(i,item){
-
-            $(".friends_list").html();
-
-        });
-        //登录窗口
-        if(!users.username){
-            $("#popup").show();
-            $(".error_text").hide();
-            $(".own_head_top").hide();
-            $(".own_head_bottom").hide();
-            tc_center();
-        }else{
-            $('.own_user_name').text(users.username);
-            $('.own_numb').text(users.username);
-            $(".tc").hide();
-        }
-    });
-    $(".tc").click(function(){
-        $("#popup").show();
-        $(".error_text").hide();
-        tc_center();
-    });
-    //点击关闭按钮
-    $("a.guanbi").click(function(){
-        $("#popup").hide();
-    })
-
-    //窗口水平居中
-    $(window).resize(function(){
-        tc_center();
-    });
-
-    function tc_center(){
-        var _top=($(window).height()-$(".popup").height())/2;
-        var _left=($(window).width()-$(".popup").width())/2;
-
-        $(".popup").css({top:_top,left:_left});
-    }
 </script>
 
 </body>

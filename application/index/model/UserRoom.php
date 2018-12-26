@@ -48,7 +48,7 @@ class UserRoom extends Model
                 if(empty($himroom)){//没有时创建
                     $user = db("user")->where("id",$him["accepter"])->find();
                     if(!empty($user)){
-                       Db::execute("INSERT INTO `talking`.`user_room`( `name`, `room_key`, `sender`, `accepter`, `createtime`, `updatetime`, `root_id`, `status`, `photo`, `isopen`, `isfriend`) VALUES ('".$user["username"]."', '".$my["room_key"]."', ".$my["accepter"].", ".$my["sender"].", '".$my["createtime"]."', '".$my["updatetime"]."', 1, 0, '".$user["photo"]."', 0, 0);
+                       Db::execute("INSERT INTO `xtk_user_room`( `name`, `room_key`, `sender`, `accepter`, `createtime`, `updatetime`, `root_id`, `status`, `photo`, `isopen`, `isfriend`) VALUES ('".$user["username"]."', '".$my["room_key"]."', ".$my["accepter"].", ".$my["sender"].", '".$my["createtime"]."', '".$my["updatetime"]."', 1, 0, '".$user["photo"]."', 0, 0);
 ");
                     }
 
@@ -70,7 +70,7 @@ class UserRoom extends Model
    }
    public function  updateOpen($data = []){
 
-       $isok = Db::execute("update user_room set isopen=".$data["isopen"]." where room_key='".$data["room_key"]."' and sender=".$data["sender"]." and accepter=".$data["accepter"].";");
+       $isok = Db::execute("update xtk_user_room set isopen=".$data["isopen"]." where room_key='".$data["room_key"]."' and sender=".$data["sender"]." and accepter=".$data["accepter"].";");
 
 
    }
