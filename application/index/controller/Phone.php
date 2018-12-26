@@ -100,8 +100,9 @@ class Phone extends Controller
         $data = [];
         $data['username'] = trim(input("username",""));
         $data['password'] = trim(input("password",""));
-        $user['ip'] =  getIP();
-        if(empty($data['username']) ||  empty($data['password'])){
+        $data['ip'] =  getIP();
+
+      if(empty($data['username']) ||  empty($data['password'])){
             sendMSG("请输入用户名或密码!","10403");
         }
         if(  !checkUser($data['username'])){
