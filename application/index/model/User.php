@@ -105,6 +105,19 @@ class User extends Model
         }
     }
 
+    public function updateUser($user = []){
+        if(!empty($user)){
+            $user = db("user")->update($user);
+            if(!empty($user)){
+                return true;
+            }else{
+                return false;
+            }
+        }else{
+            return false;
+        }
+    }
+
 
 
 }

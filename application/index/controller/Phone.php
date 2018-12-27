@@ -14,9 +14,8 @@ class Phone extends Controller
 
     public function  request(){
         $ac = input("ac", '');
-
         if (empty($ac)) {
-            sendMSG("非法访问","4004");
+            sendMSG("非法访问","4004",json_encode($_REQUEST,320));
         }
         $func = "Ajax_{$ac}";
         if (!method_exists($this, $func)) {
@@ -154,6 +153,8 @@ class Phone extends Controller
 
 
 
+
+
     /**
      * 查找用户
      * username
@@ -264,6 +265,59 @@ class Phone extends Controller
         }else{
             sendMSG("查询失败","103003");
         }
+    }
+
+    /**
+     * 修改用户的基本信息
+     */
+
+    private function Ajax_upUser(){
+        $city = input("city","");
+        $photo = input("photo","");
+        $gender = input("gender",0);
+        $byear = input("year","");
+        $bmonth = input("month","");
+        $bday = input("day","");
+
+        $uid = input("uid",0);
+        if($uid == 0 || is_numeric($uid)){
+            sendMSG("会员信息错误","10417");
+        }
+        $users= new \app\index\model\User();
+        $userinfo= $users->findUserByid($uid);
+        if(empty($userinfo)){
+            sendMSG("会员信息错误","10418");
+        }
+        $user = [];
+        $user["id"] = $uid;
+        if(!empty($city)){
+            $user['city'] =$city;
+        }
+        if(!empty($photo)){
+            $user['photo'] =$photo;
+        }
+        if(!empty($gender)){
+            $user['gender'] =$gender;
+        }
+        if(!empty($gender)){
+            $user['gender'] =$gender;
+        }
+        if(!empty($byear)){
+            $user['byear'] =$byear;
+        }
+        if(!empty($bmonth)){
+            $user['bmonth'] =$bmonth;
+        }
+        if(!empty($bday)){
+            $user['bday'] =$bday;
+        }
+        $isok = $users->updateUser($user);
+        if($isok){
+            sendMSG("ok","200");
+        }else{
+            sendMSG("未知错误，请联系管理员","10419");
+        }
+
     }
 
 }
