@@ -280,7 +280,7 @@ class Phone extends Controller
         $bday = input("day","");
 
         $uid = input("uid",0);
-        if($uid == 0 || is_numeric($uid)){
+        if($uid == 0 || !is_numeric($uid)){
             sendMSG("会员信息错误","10417");
         }
         $users= new \app\index\model\User();
@@ -299,9 +299,7 @@ class Phone extends Controller
         if(!empty($gender)){
             $user['gender'] =$gender;
         }
-        if(!empty($gender)){
-            $user['gender'] =$gender;
-        }
+
         if(!empty($byear)){
             $user['byear'] =$byear;
         }
