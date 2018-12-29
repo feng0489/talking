@@ -26,7 +26,6 @@ class User extends Model
                       "id"=>$user["id"],
                       "online"=>0,
                       "last_time"=>time(),
-                      "sign_time"=>time(),
                       "last_ip"=>getIP(),
                       "login_count"=>$user['login_count']+1
                   );
@@ -67,12 +66,11 @@ class User extends Model
         $user["weixin"] = isset($data['weixin']) ? $data['weixin']:"";
         $user["qq"] = isset($data['qq']) ? $data['qq']: "";
         $user["gender"] = isset($data['sex']) ? $data['sex']: 0;
-        $user["mobile"] = isset($data['phone']) ? $data['phone']:"";
+        $user["phone"] = isset($data['phone']) ? $data['phone']:"";
         $user["reg_ip"] = isset($data['ip'])? $data['ip']: "";
         $user["photo"] = isset($data['photo'])? $data['photo']: "";
         $user["reg_time"] = time();
         $user["last_time"] = time();
-        $user["sign_time"] = time();
         $user["login_count"] = 1;
         $id = db("user")->insertGetId($user);
         $user['id'] = $id;

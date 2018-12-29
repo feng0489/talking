@@ -1,28 +1,34 @@
 <?php
+$t1 = microtime(true);
+$mysql_server_name = 'gz-cdb-gbwzk08d.sql.tencentcdb.com';
+$mysql_username = 'root';
+$mysql_password = 'huayangjie888';
+$mysql_database = 'taobaoke';
+$mysql_port = '61846';
+$conn=mysqli_connect($mysql_server_name,$mysql_username,$mysql_password,$mysql_database,$mysql_port); //连接数据库
+//连接数据库错误提示
+if (mysqli_connect_errno($conn)) {
+    die("连接 MySQL 失败: " . mysqli_connect_error());
+}
+mysqli_query($conn,"set names utf8"); //数据库编码格式
 
-//header('content-type:application/json');
-////$text = file_get_contents("text.txt");
-//$ssss  = 'H4sIAAAAAAAAA6tWKi1OLcpLzE1VslIqLE8FIiUdpYLE4uLy/KIUZLHEZCAvJz89M0+pFgAGXYSwNgAAAA==';
-//$sssst  = 'H4sIAAAAAAAAA6tWKi1OLcpLzE1VslIqLE8FIiUdpYLE4uLy%2FKIUZLHEZCAvJz89M0%2BpFgAGXYSwNgAAAA%3D%3D';
-//$ssaaa = '{"username":"qweqwe","password":"qweqwe","ac":"login"}';
-//function enGzip($data = []){
-//    if(is_array($data)){
-//        $data = json_encode($data,320);
-//    }
-//    return urlencode(base64_encode(gzcompress($data,9)));
-//}
-//
-//function deGzip($data=""){
-//    return zlib_decode(base64_decode($data));
-//}
 
-//file_put_contents("text.text",enZlip($text));
-//echo deGzip(urldecode($sssst));
-//echo urldecode($sssst);
-//echo base64_decode($ssss);
+//查询代码
+$sql = "select * from xtk_items order by id desc limit 0,10000";
+$query = mysqli_query($conn,$sql);
+$data = 0;
+while($row = mysqli_fetch_array($query)){
+    $data = $data+1;
 
-echo enGzip($ssaaa);
+}
+echo "总共：".$data."条记录";
+//查询代码
 
-//$str = file_get_contents("text.text");
+// 释放结果集+关闭MySQL数据库连接
+mysqli_free_result($result);
+mysqli_close($conn);
 
-//echo deZlip($str);
+$t2 = microtime(true);
+
+echo "耗时".round($t2-$t1,3)."秒";
+

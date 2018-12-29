@@ -100,7 +100,6 @@ class Phone extends Controller
         $data['username'] = trim(input("username",""));
         $data['password'] = trim(input("password",""));
         $data['ip'] =  getIP();
-
       if(empty($data['username']) ||  empty($data['password'])){
             sendMSG("请输入用户名或密码!","10403");
         }
@@ -148,10 +147,6 @@ class Phone extends Controller
         }
 
     }
-
-
-
-
 
 
 
@@ -317,5 +312,33 @@ class Phone extends Controller
         }
 
     }
+
+    /**
+     * 关键词搜索
+     */
+    private function Ajax_search(){
+        $key= input("key","");//搜索关键词
+        $uid= input("uid",0);//搜索关键词
+        if(empty($uid)){
+            sendMSG("错误的用户信息","10420");
+        }
+        $users= new \app\index\model\User();
+        $userinfo= $users->findUserByid($uid);
+        if(empty($key)){
+            sendMSG("请输入关键词","10421");
+        }
+        if(empty($userinfo)){
+            sendMSG("会员信息错误","10422",$userinfo);
+        }
+        $getpid= new \app\index\model\Pid();
+        $pid = $getpid->getPid($uid);
+        if(!empty($pid)){
+            sendMSG("ok","200",$pid);
+        }else{
+            sendMSG("未知错误，请联系管理员","10423");
+        }
+
+    }
+
 
 }
