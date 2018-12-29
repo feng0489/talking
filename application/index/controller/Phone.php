@@ -333,8 +333,8 @@ class Phone extends Controller
         $getpid= new \app\index\model\Pid();
         $pid = $getpid->getPid($uid);
         if(!empty($pid)){
-            $url = "https://ai.taobao.com/search/index.htm?key={$key}&pid={$pid}";
-            sendMSG("ok","200",urlencode($url));
+            //$url = "https://ai.taobao.com/search/index.htm?key={$key}&pid={$pid}";
+            sendMSG("ok","200",$pid);
         }else{
             sendMSG("未知错误，请联系管理员","10423");
         }
