@@ -13,7 +13,17 @@ class Pid extends Model
 {
 
     public function getPid($uid){
-        $redis = new Redis();
+         $options = [
+            'host'       => '127.0.0.1',
+            'port'       => 6379,
+            'password'   => 'root',
+            'select'     => 0,
+            'timeout'    => 0,
+            'expire'     => 86400,//默认是一天
+            'persistent' => false,
+            'prefix'     => '',
+        ];
+        $redis = new Redis($options);
         $pid = $redis->get($uid);
         if(empty($pid)){
             $pids = db("pid")->query("select id,pid,use_count,`status` from xtk_pid order by use_count asc,id asc limit 1");

@@ -18,7 +18,6 @@ class User extends Model
               if($user['password'] != md5($data['password'])){
                   return "";
               }
-              unset($user["password"]);
 
               //登录后更改在线状态
               if($user["online"] == 1){
@@ -32,6 +31,8 @@ class User extends Model
                   db("user")->update($userinfo);
               }
               $user['login_count'] = $user['login_count']+1;
+              unset($user["submit_key"]);
+              unset($user["password"]);
               return $user;
           }else{
               return "";
@@ -76,6 +77,7 @@ class User extends Model
         $user['id'] = $id;
         if($id>0){
             unset($user["password"]);
+            unset($user["submit_key"]);
             return $user;
         }else{
             return "";
@@ -89,6 +91,7 @@ class User extends Model
             return "";
         }else{
             unset($user["password"]);
+            unset($user["submit_key"]);
             return $user;
         }
     }
@@ -99,6 +102,7 @@ class User extends Model
             return "";
         }else{
             unset($user["password"]);
+            unset($user["submit_key"]);
             return $user;
         }
     }

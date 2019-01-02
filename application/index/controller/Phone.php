@@ -148,14 +148,11 @@ class Phone extends Controller
 
     }
 
-
-
     /**
      * 查找用户
      * username
      */
     private function Ajax_findUser(){
-
         $username = trim(input("username",""));
         $uid = input("uid",0);
         if($uid == 0){
@@ -174,7 +171,16 @@ class Phone extends Controller
                 $data["isfriend"] = 1;
                 $data = array_merge($friendinfo,$data);
             }
-           sendMSG("ok","200",$data);
+            //返回相应数据
+            $ret = [];
+            $ret["id"] = $data["id"];
+            $ret["isfriend"] = $data["isfriend"];
+            $ret["username"] = $data["username"];
+            $ret["nickname"] = $data["nickname"];
+            $ret["intro"] = $data["intro"];
+            $ret["photo"] = $data["photo"];
+            $ret["online"] = $data["online"];
+           sendMSG("ok","200",$ret);
         }
         sendMSG("您所查找的用户不存在","10407");
     }
