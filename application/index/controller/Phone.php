@@ -60,6 +60,11 @@ class Phone extends Controller
          }
          $userinfo = $user->regit($data);
          if(!empty($userinfo)){
+            //获取推广奖励
+            if($data['tuijian_id']>0 && is_numeric($data['tuijian_id'])){
+                $user_tuiguang = new \app\index\model\Tuiguang();
+                $ok = $user_tuiguang->addTruiguang($userinfo["id"],$data['tuijian_id']);
+            }
              //添加自己为好友
              $me = [];
              $me["uid"] = $userinfo["id"];
@@ -84,11 +89,23 @@ class Phone extends Controller
              if(empty($status)){
                  sendMSG("未知异常","10400",$userinfo);
              }
+             //写入日志
+             $log = [];
+             $log["uid"] = $userinfo["id"];
+             $log["username"] = $userinfo["username"];
+             $log["type"] = 5;//:1登录,2登出,3修改信息,4绑定(微信，qq，支付宝),5注册
+             $log["content"] = $userinfo["username"]."注册";
+             $log["create_time"] = time();
+             $log["create_ip"] = getIP();
+             $userLog = new \app\index\model\UserLog();
+             $userLog->addUserLog($log);
              sendMSG("ok","200",$userinfo);
          }else{
              sendMSG("系统异常，请联系管理员!","10402");
          }
      }
+
+
 
 
     /**
@@ -124,8 +141,17 @@ class Phone extends Controller
 //        $message =new \app\index\model\Message();
 //        $userinfo["messages"] = $message->getMessage($users["id"]);
         if(!empty($userinfo)){
+            //写入日志
+            $log = [];
+            $log["uid"] = $users["id"];
+            $log["username"] = $users["username"];
+            $log["type"] = 1;//1登录,2登出,3修改信息,4绑定(微信，qq，支付宝),5注册
+            $log["content"] = $users["username"]."登录";
+            $log["create_time"] = time();
+            $log["create_ip"] = getIP();
+            $userLog = new \app\index\model\UserLog();
+            $userLog->addUserLog($log);
             sendMSG("ok","200",$userinfo);
-
         }else{
             sendMSG("用户名或者密码错误!","10405");
         }
@@ -139,8 +165,19 @@ class Phone extends Controller
         }
         //获取用户信息
         $user= new \app\index\model\User();
-        $isok= $user->logout($uid);
-        if($isok){
+        $users =$user->findUserByid($uid);
+        if($users){
+            //写入日志
+            $log = [];
+            $log["uid"] = $users["id"];
+            $log["username"] = $users["username"];
+            $log["type"] = 2;//1登录,2登出,3修改信息,4绑定(微信，qq，支付宝),5注册
+            $log["content"] = $users["username"]."登出";
+            $log["create_time"] = time();
+            $log["create_ip"] = getIP();
+            $userLog = new \app\index\model\UserLog();
+            $userLog->addUserLog($log);
+            $isok= $user->logout($uid);
             sendMSG("ok","200");
         }else{
             sendMSG("发生未知错误","10416");
@@ -236,6 +273,17 @@ class Phone extends Controller
         $ur->saveRoom($usergroud);
 
         if($status){
+            //写入日志
+            $users = $user->findUserByid($data["uid"]);
+            $log = [];
+            $log["uid"] = $users["id"];
+            $log["username"] = $users["username"];
+            $log["type"] = 3;//1登录,2登出,3修改信息,4绑定(微信，qq，支付宝),5注册
+            $log["content"] = "添加".$userinfo["username"]."为好友";
+            $log["create_time"] = time();
+            $log["create_ip"] = getIP();
+            $userLog = new \app\index\model\UserLog();
+            $userLog->addUserLog($log);
             sendMSG("ok","200",$userinfo);
         }else{
             sendMSG("添加失败","103002");
@@ -312,6 +360,36 @@ class Phone extends Controller
         }
         $isok = $users->updateUser($user);
         if($isok){
+            $old = [];
+            if(!empty($city)){
+                $old['city'] =$userinfo["city"];
+            }
+            if(!empty($photo)){
+                $old['photo'] =$userinfo["photo"];
+            }
+            if(!empty($gender)){
+                $old['gender'] =$userinfo["gender"];
+            }
+
+            if(!empty($byear)){
+                $old['byear'] =$userinfo["byear"];
+            }
+            if(!empty($bmonth)){
+                $old['bmonth'] =$userinfo["bmonth"];
+            }
+            if(!empty($bday)){
+                $old['bday'] =$userinfo["bday"];
+            }
+            $users = $user->findUserByid($uid);
+            $log = [];
+            $log["uid"] = $users["id"];
+            $log["username"] = $users["username"];
+            $log["type"] = 3;//1登录,2登出,3修改信息,4绑定(微信，qq，支付宝),5注册
+            $log["content"] = "修改信息,旧信息:".json_encode($old)."新信息：".json_encode($user);
+            $log["create_time"] = time();
+            $log["create_ip"] = getIP();
+            $userLog = new \app\index\model\UserLog();
+            $userLog->addUserLog($log);
             sendMSG("ok","200");
         }else{
             sendMSG("未知错误，请联系管理员","10419");
@@ -325,7 +403,7 @@ class Phone extends Controller
     private function Ajax_search(){
         $key= input("key","");//搜索关键词
         $uid= input("uid",0);//搜索关键词
-        if(empty($uid)){
+        if($uid<=0 || !is_numeric($uid)){
             sendMSG("错误的用户信息","10420");
         }
         $users= new \app\index\model\User();
@@ -344,6 +422,59 @@ class Phone extends Controller
         }else{
             sendMSG("未知错误，请联系管理员","10423");
         }
+
+    }
+
+    private function Ajax_tgLog(){
+        $uid= input("uid",0);//搜索关键词
+        if(empty($uid) || !is_numeric($uid)){
+            sendMSG("错误的用户信息","10424");
+        }
+        $tuiguang_log = new \app\index\model\Tuiguang();
+        $log = $tuiguang_log->getTuiguang($uid);
+        sendMSG("ok","200",$log);
+    }
+
+    private function Ajax_userLog(){
+        $uid= input("uid",0);
+        if(empty($uid) || !is_numeric($uid)){
+            sendMSG("错误的用户信息","10424");
+        }
+        $tuiguang_log = new \app\index\model\UserLog();
+        $log = $tuiguang_log->getUserLog($uid);
+        sendMSG("ok","200",$log);
+    }
+    private function drawMoney(){
+        $user = [];
+        $user["uid"] = input("uid",0);
+        $user["account"] = trim(input("account",""));//提款账号
+        $user["money"] = input("money",0);//提款账号
+        $user["submit_key"] = trim(input("submit_key",""));//确认密码
+        if(empty($user["uid"]) || !is_numeric($user["uid"])){
+            sendMSG("错误的用户信息","10425");
+        }
+        if($user["account"] == ""){
+            sendMSG("请设置提款账号","10426");
+        }
+        if($user["submit_key"] == ""){
+            sendMSG("请输入确认密码","10427");
+        }
+        if(empty($user["money"]) || !is_numeric($user["money"])){
+            sendMSG("请输入正确的金额","10427");
+        }
+        $users= new \app\index\model\User();
+        $userinfo= $users->findUserByid($user["uid"]);
+        if(empty($userinfo)){
+            sendMSG("错误的用户信息","10428");
+        }
+        if($user["submit_key"] != $userinfo["submit_key"]){
+            sendMSG("确认密码错误，请从新输入","10429");
+        }
+        $money = (int)$user["money"];
+        if($money>$userinfo["money"]){
+            sendMSG("您的余额已不足","10430");
+        }
+
 
     }
 

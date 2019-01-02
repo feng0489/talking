@@ -16,7 +16,7 @@ class UserRoom extends Model
 
     public function saveRoom($ug = []){
 
-        if($ug["room_key"] != ""){//如果房间已经存在则跳过
+        if($ug["room_key"] != ""){
             $where = [];
             $where["room_key"] =  $ug["room_key"];
             $where["sender"] =  $ug["send_user"];
@@ -24,7 +24,7 @@ class UserRoom extends Model
             $ugd = db("user_room")->where($where)->find();
             if(!empty($ugd)){
                 return $ugd;
-            }else{//如果房间不存在则创建
+            }else{
                 $my["name"] = isset($ug['name']) ? $ug['name'] : "";
                 $my["room_key"] = isset($ug['room_key']) ? $ug['room_key'] : "";
                 $my["createtime"] = time();
@@ -38,14 +38,13 @@ class UserRoom extends Model
                 $my_room = db("user_room")->insertGetId($my);
                 $my["id"] = $my_room;
 
-                //创建了自己的同时，帮对方创建
-                //但先判断是否存在这个房间
+
                 $him = [];
                 $him["sender"] =  $my["accepter"];
                 $him["accepter"] =  $my["sender"];
                 $him["room_key"] =  $my["room_key"];
                 $himroom = db("user_room")->where($him)->find();
-                if(empty($himroom)){//没有时创建
+                if(empty($himroom)){
                     $user = db("user")->where("id",$him["accepter"])->find();
                     if(!empty($user)){
                        Db::execute("INSERT INTO `xtk_user_room`( `name`, `room_key`, `sender`, `accepter`, `createtime`, `updatetime`, `root_id`, `status`, `photo`, `isopen`, `isfriend`) VALUES ('".$user["username"]."', '".$my["room_key"]."', ".$my["accepter"].", ".$my["sender"].", '".$my["createtime"]."', '".$my["updatetime"]."', 1, 0, '".$user["photo"]."', 0, 0);
@@ -64,7 +63,7 @@ class UserRoom extends Model
         if($uid>0){
             $room = db("user_room")
                 ->where("sender",$uid)
-                ->select();//isopen 0没有通讯过，1通讯
+                ->select();
           return $room;
         }
    }

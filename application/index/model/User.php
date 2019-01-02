@@ -19,7 +19,7 @@ class User extends Model
                   return "";
               }
 
-              //登录后更改在线状态
+
               if($user["online"] == 1){
                   $userinfo = array(
                       "id"=>$user["id"],
@@ -70,6 +70,7 @@ class User extends Model
         $user["phone"] = isset($data['phone']) ? $data['phone']:"";
         $user["reg_ip"] = isset($data['ip'])? $data['ip']: "";
         $user["photo"] = isset($data['photo'])? $data['photo']: "";
+        $user["tuijian_id"] = isset($data['tuijian_id'])? $data['tuijian_id']: 0;
         $user["reg_time"] = time();
         $user["last_time"] = time();
         $user["login_count"] = 1;

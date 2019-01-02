@@ -45,6 +45,10 @@ function sendMSG($msg, $code=0, $data = []) {
     exit(json_encode($arr,320));
 }
 
+function CreateOrder($uid,$sub_type) {
+    $type = mt_rand(1000,9999);
+    return sprintf("%s%02d%02d%02d", date("ymdHis"), $uid,$sub_type, $type);
+}
 //判断访问设备
 function checkDevice() {
     // return 'Phone';
