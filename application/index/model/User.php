@@ -74,6 +74,7 @@ class User extends Model
         $user["reg_time"] = time();
         $user["last_time"] = time();
         $user["login_count"] = 1;
+        $user["level"] = 1;//vip等级默认为1
         $id = db("user")->insertGetId($user);
         $user['id'] = $id;
         if($id>0){
@@ -103,7 +104,6 @@ class User extends Model
             return "";
         }else{
             unset($user["password"]);
-            unset($user["submit_key"]);
             return $user;
         }
     }

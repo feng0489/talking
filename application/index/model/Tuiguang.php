@@ -30,10 +30,9 @@ class Tuiguang extends Model
        if($level["tuiguang"]> 0 ){
            $money = $level["tuiguang"];
        }
-       if($level["tg_other"]>0){
-           $money = $money+$level["tg_other"];
-       }
+
        if($money>0){
+           //提交到用户表
            $userinfo["id"] = $user["id"];
            $userinfo["all_money"] = $user["all_money"] + $money;
            $userinfo["total_money"] = $user["total_money"] + $money;
@@ -64,15 +63,50 @@ class Tuiguang extends Model
             $trad["new_money"] = $userinfo["all_money"];
             $trad["money"] = $money;
             $trad["kouchu"] = 0;
+            $trad["shiji_money"] = $money;
             $trad["time"] = time();
             $trad["index_remark"] = "推广奖励";
             $trad["admin_remark"] = "";
             $addtradLog = db($trad_table)->insertGetId($trad);
-              if($addtuiguanglog>0 && $addtradLog>0){
-                  return true;
-              }else{
-                  return false;
-              }
+
+            //等级的额外奖励
+            if($level["tg_other"]>0){
+                //提交到用户表
+                $users =  db("user")->where("id",$tuiguang_id)->find();
+                $user_info["id"] = $users["id"];
+                $user_info["all_money"] = $users["all_money"] + $level["tg_other"];
+                $user_info["total_money"] = $users["total_money"] + $level["tg_other"];
+                $user_updata = db("user")->update($user_info);
+
+                if($user_updata== 1){
+                    //添加到交易表
+                    $trad_table = "user_trade_log_".date("m");
+                    $trad = [];
+                    $trad["uid"] = $users["id"];
+                    $trad["username"] = $users["username"];
+                    $trad["tuid"] = $new_user["id"];
+                    $trad["tusername"] = $new_user["username"];
+                    $trad["order"] = $order;
+                    $trad["type"] = 1;
+                    $trad["old_money"] = $users["all_money"];
+                    $trad["new_money"] = $users["all_money"]+$level["tg_other"];
+                    $trad["money"] = $level["tg_other"];
+                    $trad["kouchu"] = 0;
+                    $trad["shiji_money"] = $level["tg_other"];
+                    $trad["time"] = time();
+                    $trad["index_remark"] = "推广额外奖励";
+                    $trad["admin_remark"] = "";
+                    db($trad_table)->insertGetId($trad);
+
+                }
+
+            }
+
+            if($addtuiguanglog>0 && $addtradLog>0){
+                return true;
+            }else{
+                return false;
+            }
            }
        }else{
            return false;
@@ -82,7 +116,6 @@ class Tuiguang extends Model
    public function getTuiguang($uid = 0,$pagesine=50){//默认50页
        $User_log = db("user_tuiguang_log")->where("uid",$uid)->paginate($pagesine);
        return $User_log;
-
    }
 
 }

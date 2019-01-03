@@ -37,7 +37,7 @@ class Phone extends Controller
          $data['sex'] = input("sex",0);//0男,1女
          $data['phone'] = trim(input("phone",""));
          $data['ip'] =  getIP();
-         $data['tuijian_id'] = input("tuijian_id",0);
+         $data['tuijian_id'] = input("tuijian",0);
          if(!empty($data['username'])){
              if(!checkUser($data['username'])){
                  sendMSG("用户名格式错误!","10400");
@@ -158,6 +158,9 @@ class Phone extends Controller
 
     }
 
+    /**
+     * 用户登出
+     */
     private  function Ajax_logout(){
         $uid = input("id",0);
         if(!is_numeric($uid)){
@@ -425,6 +428,9 @@ class Phone extends Controller
 
     }
 
+    /**
+     * 推广记录
+     */
     private function Ajax_tgLog(){
         $uid= input("uid",0);//搜索关键词
         if(empty($uid) || !is_numeric($uid)){
@@ -435,6 +441,9 @@ class Phone extends Controller
         sendMSG("ok","200",$log);
     }
 
+    /**
+     * 用户记录
+     */
     private function Ajax_userLog(){
         $uid= input("uid",0);
         if(empty($uid) || !is_numeric($uid)){
@@ -444,38 +453,100 @@ class Phone extends Controller
         $log = $tuiguang_log->getUserLog($uid);
         sendMSG("ok","200",$log);
     }
-    private function drawMoney(){
-        $user = [];
-        $user["uid"] = input("uid",0);
-        $user["account"] = trim(input("account",""));//提款账号
-        $user["money"] = input("money",0);//提款账号
-        $user["submit_key"] = trim(input("submit_key",""));//确认密码
-        if(empty($user["uid"]) || !is_numeric($user["uid"])){
+
+    /**
+     * 用户提现
+     */
+    private function Ajax_drawMoney(){
+        $data = [];
+        $data["uid"] = input("uid",0);
+        $data["qudao"] = input("type",0);
+        $data["account"] = trim(input("account",""));//提款账号
+        $data["money"] = input("money",0);//提款账号
+        $data["submit_key"] = trim(input("submit_key",""));//确认密码
+
+        //检查提交信息
+        if(empty($data["uid"]) || !is_numeric($data["uid"])){
             sendMSG("错误的用户信息","10425");
         }
-        if($user["account"] == ""){
+        if($data["account"] == ""){
             sendMSG("请设置提款账号","10426");
         }
-        if($user["submit_key"] == ""){
+        if($data["submit_key"] == ""){
             sendMSG("请输入确认密码","10427");
         }
-        if(empty($user["money"]) || !is_numeric($user["money"])){
+        if(empty($data["money"]) || !is_numeric($data["money"])){
             sendMSG("请输入正确的金额","10427");
         }
+
+        //检查用户信息
         $users= new \app\index\model\User();
-        $userinfo= $users->findUserByid($user["uid"]);
+        $userinfo= $users->findUserByid($data["uid"]);
         if(empty($userinfo)){
             sendMSG("错误的用户信息","10428");
         }
-        if($user["submit_key"] != $userinfo["submit_key"]){
+        if(md5($data["submit_key"]) != $userinfo["submit_key"]){
             sendMSG("确认密码错误，请从新输入","10429");
         }
-        $money = (int)$user["money"];
-        if($money>$userinfo["money"]){
-            sendMSG("您的余额已不足","10430");
+        $data["money"] = (int)$data["money"];
+        if($data["money"]>$userinfo["money"]){
+            sendMSG("您可提现的余额已不足！","10430");
+        }
+        if($data["qudao"] == "1" ){//检测1支付宝2微信
+           if($userinfo["zhifubao"] != $data["account"] || $userinfo["weixin"] != $data["account"]){
+               sendMSG("错误的提现账号","10431");
+           }
+        }elseif($data["qudao"] == "2"){
+            if( $userinfo["weixin"] != $data["account"]){
+                sendMSG("错误的提现账号","10431");
+            }
+        }else{
+            sendMSG("错误的类型!","10432");
         }
 
+        //检查等级
+        $getleve = new \app\index\model\Level();
+        $level = $getleve->getLevelById($userinfo["level"]);
+        if(!empty($level)){
+            if($level["tixian_min"]>0){
+                if($level["tixian_min"] > $data["money"]){
+                    sendMSG("您提现的金额低于等级的限制！","10433");
+                }
+            }
+            if($level["tixian_max"]>0){
+                if($level["tixian_max"] < $data["money"]){
+                    sendMSG("您提现的金额高于等级的限制！","10434");
+                }
+            }
+            if($level["tixian"] >0){
+                $data["kouchu"] = $level["tixian"];
+            }else{
+                $data["kouchu"]= 0;
+            }
+        }
 
+        $tixian = new \app\index\model\Tixian();
+        $isok = $tixian->tixian($userinfo,$data);
+        if($isok){
+            sendMSG("ok","200");
+        }else{
+            sendMSG("出现未知错误请联系客服！","10435");
+        }
+    }
+    private function Ajax_drawLog(){
+        $uid = input("uid",0);
+        if(empty($uid) || !is_numeric($uid)){
+            sendMSG("错误的信息!","104636");
+        }
+        //检查用户信息
+        $users= new \app\index\model\User();
+        $userinfo= $users->findUserByid($uid);
+        if(empty($userinfo)){
+            sendMSG("错误的信息!","10437");
+        }
+        $draw_log= new \app\index\model\Tixian();
+        $drawLog= $draw_log->getTixian($uid);
+        sendMSG("ok","200",$drawLog);
     }
 
 
