@@ -70,14 +70,18 @@ class Phone extends Controller
 
             }
              //添加自己为好友
-             $me = [];
-             $me["uid"] = $userinfo["id"];
-             $me["fid"] = $userinfo["id"];
-             $me["status"] = 1;
-             $me["remark"] = "";
-             $me["createtime"] = time();
              $friends= new \app\index\model\Userfriends();
-             $status = $friends->insertFriends($me);
+            $mes =  $friends->getfriendByid($userinfo["id"],$userinfo["id"]);
+            if(empty($mes)){
+                $me = [];
+                $me["uid"] = $userinfo["id"];
+                $me["fid"] = $userinfo["id"];
+                $me["status"] = 1;
+                $me["remark"] = "";
+                $me["createtime"] = time();
+                $status = $friends->insertFriends($me);
+            }
+
             //添加自己到聊天房间
              $usergroud = [];
              $usergroud["name"] = $userinfo['username'];
@@ -154,14 +158,18 @@ class Phone extends Controller
 
                 }
                 //添加自己为好友
-                $me = [];
-                $me["uid"] = $userinfo["id"];
-                $me["fid"] = $userinfo["id"];
-                $me["status"] = 1;
-                $me["remark"] = "";
-                $me["createtime"] = time();
                 $friends= new \app\index\model\Userfriends();
-                $friends->insertFriends($me);
+                $mes =  $friends->getfriendByid($userinfo["id"],$userinfo["id"]);
+                if(empty($mes)){
+                    $me = [];
+                    $me["uid"] = $userinfo["id"];
+                    $me["fid"] = $userinfo["id"];
+                    $me["status"] = 1;
+                    $me["remark"] = "";
+                    $me["createtime"] = time();
+                    $status = $friends->insertFriends($me);
+                }
+
 
                 //添加自己到聊天房间
                 $usergroud = [];

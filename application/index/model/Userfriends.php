@@ -40,6 +40,14 @@ class Userfriends extends Model
         return true;
     }
 
+    public function  getfriendByid($uid = 0,$fid = 0){
+        $friends = db("user_friends")
+                  ->where("uid",$uid)
+                  ->where("fid",$fid)
+                  ->find();
+        return $friends;
+    }
+
     //好友列表
     public function findFriends($uid){
         if(empty($friends)){
