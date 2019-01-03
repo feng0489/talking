@@ -66,10 +66,14 @@ class User extends Model
         $user["password"] = isset($data['password']) ? md5($data['password']):"";
         $user["weixin"] = isset($data['weixin']) ? $data['weixin']:"";
         $user["qq"] = isset($data['qq']) ? $data['qq']: "";
-        $user["gender"] = isset($data['sex']) ? $data['sex']: 0;
+        $user["gender"] = isset($data['sex']) ? $data['sex']: 1;
         $user["phone"] = isset($data['phone']) ? $data['phone']:"";
         $user["reg_ip"] = isset($data['ip'])? $data['ip']: "";
         $user["photo"] = isset($data['photo'])? $data['photo']: "";
+        $user["province"] = isset($data['province'])? $data['province']: "";
+        $user["unionid"] = isset($data['unionid'])? $data['unionid']: "";
+        $user["nickname"] = isset($data['nickname'])? $data['nickname']: $data["username"];
+        $user["city"] = isset($data['city'])? $data['city']: "";
         $user["tuijian_id"] = isset($data['tuijian_id'])? $data['tuijian_id']: 0;
         $user["reg_time"] = time();
         $user["last_time"] = time();
@@ -89,6 +93,16 @@ class User extends Model
 
     public function  findUserByName($username){
         $user = db("user")->where(array("username"=>$username))->find();
+        if(empty($user)){
+            return "";
+        }else{
+            unset($user["password"]);
+            unset($user["submit_key"]);
+            return $user;
+        }
+    }
+    public function  findUserByUnionid($unionid){
+        $user = db("user")->where(array("unionid"=>$unionid))->find();
         if(empty($user)){
             return "";
         }else{

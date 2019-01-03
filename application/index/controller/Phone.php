@@ -62,8 +62,12 @@ class Phone extends Controller
          if(!empty($userinfo)){
             //获取推广奖励
             if($data['tuijian_id']>0 && is_numeric($data['tuijian_id'])){
-                $user_tuiguang = new \app\index\model\Tuiguang();
-                $ok = $user_tuiguang->addTruiguang($userinfo["id"],$data['tuijian_id']);
+                $tuijian = $user->findUserByid($data['tuijian_id']);
+                if(!empty($tuijian)){
+                    $user_tuiguang = new \app\index\model\Tuiguang();
+                    $ok = $user_tuiguang->addTruiguang($userinfo,$tuijian);
+                }
+
             }
              //添加自己为好友
              $me = [];
@@ -86,9 +90,7 @@ class Phone extends Controller
              $usergroud["isfriend"] = 1;
              $ur = new \app\index\model\UserRoom();
              $ur->saveRoom($usergroud);
-             if(empty($status)){
-                 sendMSG("未知异常","10400",$userinfo);
-             }
+
              //写入日志
              $log = [];
              $log["uid"] = $userinfo["id"];
@@ -104,6 +106,94 @@ class Phone extends Controller
              sendMSG("系统异常，请联系管理员!","10402");
          }
      }
+
+    /**
+     * 微信登录窗口
+     */
+    private function Ajax_weixinLogin(){
+        $data['tuijian_id'] = input("tuijian",0);
+        $data['province'] = input("province","");
+        $data['city'] = input("city","");
+        $data['unionid'] = input("unionid","");
+        $data['photo'] = input("photo","");
+        $data['nickname'] = input("nickname","");
+        $data['sex'] = input("sex",1);
+        if(empty($data['unionid'])){
+            sendMSG("授权登陆失败，请重新授权","30401");
+        }
+        $user_get= new \app\index\model\User();
+        $user_data = $user_get->findUserByUnionid($data['unionid']);
+        if(!empty($user_data)){
+            $users["users"] = $user_data;
+            $friend= new \app\index\model\Userfriends();
+            $users["friends"] = $friend->findFriends($user_data["id"]);
+            //获取房间信息
+            $room =new \app\index\model\UserRoom();
+            $users["rooms"]= $room->getRoomById($user_data["id"]);
+            $log = [];
+            $log["uid"] = $user_data["id"];
+            $log["username"] = $user_data["nickname"];
+            $log["type"] = 1;//1登录,2登出,3修改信息,4绑定(微信，qq，支付宝),5注册
+            $log["content"] = $user_data["nickname"]."登录";
+            $log["create_time"] = time();
+            $log["create_ip"] = getIP();
+            $userLog = new \app\index\model\UserLog();
+            $userLog->addUserLog($log);
+
+            sendMSG("ok","200",$users);
+        }else{
+            $userinfo = $user_get->regit($data);
+            if(!empty($userinfo)){
+                //获取推广奖励
+                if($data['tuijian_id']>0 && is_numeric($data['tuijian_id'])){
+                    $tuijian = $user_get->findUserByid($data['tuijian_id']);
+                    if(!empty($tuijian)){
+                        $user_tuiguang = new \app\index\model\Tuiguang();
+                        $ok = $user_tuiguang->addTruiguang($userinfo,$tuijian);
+                    }
+
+                }
+                //添加自己为好友
+                $me = [];
+                $me["uid"] = $userinfo["id"];
+                $me["fid"] = $userinfo["id"];
+                $me["status"] = 1;
+                $me["remark"] = "";
+                $me["createtime"] = time();
+                $friends= new \app\index\model\Userfriends();
+                $friends->insertFriends($me);
+
+                //添加自己到聊天房间
+                $usergroud = [];
+                $usergroud["name"] = $userinfo['username'];
+                $usergroud["room_key"] = md5($userinfo["id"]."_".$userinfo["id"]);
+                $usergroud["root_id"] = 1;
+                $usergroud["send_user"] = $userinfo["id"];
+                $usergroud["accept_user"] = $userinfo["id"];
+                $usergroud["photo"] = $userinfo["photo"];
+                $usergroud["isopen"] = 0;
+                $usergroud["isfriend"] = 1;
+                $ur = new \app\index\model\UserRoom();
+                $ur->saveRoom($usergroud);
+
+                //写入日志
+                $log = [];
+                $log["uid"] = $userinfo["id"];
+                $log["username"] = $userinfo["username"];
+                $log["type"] = 5;//:1登录,2登出,3修改信息,4绑定(微信，qq，支付宝),5注册
+                $log["content"] = $userinfo["username"]."注册";
+                $log["create_time"] = time();
+                $log["create_ip"] = getIP();
+                $userLog = new \app\index\model\UserLog();
+                $userLog->addUserLog($log);
+                sendMSG("ok","200",$userinfo);
+
+            }else{
+                sendMSG("系统异常，请联系管理员!","30401");
+            }
+        }
+
+    }
 
 
 
@@ -547,6 +637,101 @@ class Phone extends Controller
         $draw_log= new \app\index\model\Tixian();
         $drawLog= $draw_log->getTixian($uid);
         sendMSG("ok","200",$drawLog);
+    }
+
+    /**
+     * 步数结算
+     */
+    private function Ajax_bushuactive(){
+        $uid = input("uid",0);
+        $bushu= input("bushu",0);
+        if(empty($uid) || !is_numeric($uid)){
+            sendMSG("错误的信息!","104638");
+        }
+        if(empty($bushu) || !is_numeric($bushu)){
+            sendMSG("错误的信息!","104639");
+        }
+        //检查用户信息
+        $users= new \app\index\model\User();
+        $userinfo= $users->findUserByid($uid);
+        if(empty($userinfo)){
+            sendMSG("错误的信息!","10440");
+        }
+        $bushu_log= new \app\index\model\Bushu();
+        $isok= $bushu_log->bsJiesuan($userinfo,$bushu);
+        if($isok){
+            sendMSG("ok","200");
+        }else{
+            sendMSG("出现未知错误请联系客服!","10441");
+        }
+
+    }
+
+    /**
+     * 获取步数记录
+     */
+    private function Ajax_bushulog(){
+        $uid = input("uid",0);
+        if(empty($uid) || !is_numeric($uid)){
+            sendMSG("错误的信息!","10442");
+        }
+        //检查用户信息
+        $users= new \app\index\model\User();
+        $userinfo= $users->findUserByid($uid);
+        if(empty($userinfo)){
+            sendMSG("错误的信息!","10443");
+        }
+        $bushu_log= new \app\index\model\Bushu();
+        $bushu = $bushu_log->getBushu($uid);
+        sendMSG("ok","200",$bushu);
+    }
+
+    private function  Ajax_getTask(){
+        $uid = input("uid",0);
+        if(empty($uid) || !is_numeric($uid)){
+            sendMSG("错误的信息!","104638");
+        }
+        //检查用户信息
+        $users= new \app\index\model\User();
+        $userinfo= $users->findUserByid($uid);
+        if(empty($userinfo)){
+            sendMSG("错误的信息!","10443");
+        }
+        $get_task= new \app\index\model\Task();
+        $task = $get_task->getTask($userinfo);
+        sendMSG("ok","200",$task);
+    }
+
+    private function  Ajax_doTask(){
+        $uid = input("uid",0);
+        $task_id = input("task_id",0);
+        if(empty($uid) || !is_numeric($uid) || empty($task_id) || !is_numeric($task_id)){
+            sendMSG("错误的信息!","10444");
+        }
+        //检查用户信息
+        $users= new \app\index\model\User();
+        $userinfo= $users->findUserByid($uid);
+        if(empty($userinfo)){
+            sendMSG("错误的信息!","10445");
+        }
+        $tasks= new \app\index\model\Task();
+        $taskinfo= $tasks->getTaskById($task_id);
+        if(empty($taskinfo)){
+            sendMSG("该任务已经不存在!","10446");
+        }
+        if($taskinfo["status"]){
+            sendMSG("该任务未开启!","10447");
+        }
+        if($taskinfo["count"] > 0){
+            $task_logs =  new \app\index\model\TaskLog();
+            $taskLogs = $task_logs->getTaskLog($uid,$task_id);
+            $total_log = count($taskLogs);
+            if($total_log > $taskinfo["count"]){
+                sendMSG("今日的任务已经完成","10448");
+            }
+        }
+
+
     }
 
 

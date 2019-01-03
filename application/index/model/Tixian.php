@@ -84,7 +84,7 @@ class Tixian extends Model
   }
 
   public function getTixian($uid=0,$pagesine=50){
-      $tixian_log = db("user_tixian")->where("uid",$uid)->paginate($pagesine);
+      $tixian_log = db("user_tixian")->where("uid",$uid)->order("id desc")->paginate($pagesine);
       return $tixian_log;
   }
 
