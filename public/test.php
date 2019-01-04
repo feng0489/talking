@@ -32,14 +32,29 @@
 //
 //echo "耗时".round($t2-$t1,3)."秒";
 
-function num($number)
+function num($number = 0)
 {
-    if($number%2 == 0)
+    if($number%1 != 0)
     {
-        return "ok";
-    }else{
         return "false";
+    }else{
+        return "ok";
     }
 }
 
-echo num(0);
+print_r(getLastTime(2));
+
+
+
+/*
+ * 获取前一天的开始和结束时间
+ */
+function getLastTime($times)
+{
+    $itme = $times-1;
+    $star=date("Y-m-d",strtotime("-{$itme} day"))." 0:0:0";
+    $data["star"]=strtotime($star);
+    $end=date("Y-m-d",strtotime("-{$itme} day"))." 23:59:59";
+    $data["end"]=strtotime($end);
+    return $data;
+}

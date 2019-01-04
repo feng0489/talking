@@ -9,7 +9,13 @@ class Index extends Controller
     }
     public function login()
     {
-        return $this->fetch("login/login");
+        return $this->fetch();
+    }
+
+    public function regit(){
+        $uid = input("uid",0);
+        $this->assign('uid',$uid);
+        return $this->fetch("index/regit");
     }
 
 

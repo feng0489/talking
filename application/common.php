@@ -72,6 +72,20 @@ function checkDevice() {
     return 1;//pc
 }
 
+/**
+ * 获取前几天后几天的时间，默认为明天时间
+ * @param int $times 1就是今天，2就是昨天
+ * @return mixed
+ */
+function getLastTime($times= 0)
+{
+    $itme = $times-1;
+    $star=date("Y-m-d",strtotime("-{$itme} day"))." 0:0:0";
+    $data["star"]=strtotime($star);
+    $end=date("Y-m-d",strtotime("-{$itme} day"))." 23:59:59";
+    $data["end"]=strtotime($end);
+    return $data;
+}
 
 function trimall($str){
      $qian=array(" ","　","\\t","\\n","\\r");

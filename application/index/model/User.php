@@ -101,6 +101,16 @@ class User extends Model
             return $user;
         }
     }
+    public function  findUserByNickName($username){
+        $user = db("user")->where(array("nickname"=>$username))->find();
+        if(empty($user)){
+            return "";
+        }else{
+            unset($user["password"]);
+            unset($user["submit_key"]);
+            return $user;
+        }
+    }
     public function  findUserByUnionid($unionid){
         $user = db("user")->where(array("unionid"=>$unionid))->find();
         if(empty($user)){
@@ -123,16 +133,14 @@ class User extends Model
     }
 
     public function updateUser($user = []){
-        if(!empty($user)){
-            $user = db("user")->update($user);
-            if(!empty($user)){
-                return true;
-            }else{
-                return false;
-            }
+
+        $user = db("user")->update($user);
+        if($user >=0){
+            return true;
         }else{
             return false;
         }
+
     }
 
 

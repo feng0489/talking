@@ -173,7 +173,7 @@ class Phone extends Controller
 
                 //添加自己到聊天房间
                 $usergroud = [];
-                $usergroud["name"] = $userinfo['username'];
+                $usergroud["name"] = $userinfo['nickname'];
                 $usergroud["room_key"] = md5($userinfo["id"]."_".$userinfo["id"]);
                 $usergroud["root_id"] = 1;
                 $usergroud["send_user"] = $userinfo["id"];
@@ -187,9 +187,9 @@ class Phone extends Controller
                 //写入日志
                 $log = [];
                 $log["uid"] = $userinfo["id"];
-                $log["username"] = $userinfo["username"];
+                $log["username"] = $userinfo["nickname"];
                 $log["type"] = 5;//:1登录,2登出,3修改信息,4绑定(微信，qq，支付宝),5注册
-                $log["content"] = $userinfo["username"]."注册";
+                $log["content"] = $userinfo["nickname"]."注册";
                 $log["create_time"] = time();
                 $log["create_ip"] = getIP();
                 $userLog = new \app\index\model\UserLog();
@@ -291,36 +291,36 @@ class Phone extends Controller
      * username
      */
     private function Ajax_findUser(){
-        $username = trim(input("username",""));
+
         $uid = input("uid",0);
-        if($uid == 0){
+        $nickname = input("nickname","");
+        if($uid == 0 ||!is_numeric($uid)){
             sendMSG("用户信息错误","10416");
         }
-        if(  empty($username) || !checkUser($username)){
-            sendMSG("用户名错误","10406");
-        }
+
         $user= new \app\index\model\User();
-        $data= $user->findUserByName($username);
-        $data["isfriend"] = 0;
-        if(!empty($data)){
-            $friends= new \app\index\model\Userfriends();
-            $friendinfo = $friends->findFriend($data["id"],$uid);
-            if(!empty($status)){
-                $data["isfriend"] = 1;
-                $data = array_merge($friendinfo,$data);
-            }
-            //返回相应数据
-            $ret = [];
-            $ret["id"] = $data["id"];
-            $ret["isfriend"] = $data["isfriend"];
-            $ret["username"] = $data["username"];
-            $ret["nickname"] = $data["nickname"];
-            $ret["intro"] = $data["intro"];
-            $ret["photo"] = $data["photo"];
-            $ret["online"] = $data["online"];
-           sendMSG("ok","200",$ret);
+        $data= $user->findUserByNickName($nickname);
+        if(empty($data)){
+            sendMSG("未找到对应的用户","10417");
         }
-        sendMSG("您所查找的用户不存在","10407");
+        $data["isfriend"] = 0;
+        $friends= new \app\index\model\Userfriends();
+        $friendinfo = $friends->findFriend($data["id"],$uid);
+        if(!empty($friendinfo)){
+            $data["isfriend"] = 1;
+            $data = array_merge($friendinfo,$data);
+        }
+        //返回相应数据
+        $ret = [];
+        $ret["id"] = $data["id"];
+        $ret["isfriend"] = $data["isfriend"];
+        $ret["username"] = $data["username"];
+        $ret["nickname"] = $data["nickname"];
+        $ret["intro"] = $data["intro"];
+        $ret["photo"] = $data["photo"];
+        $ret["online"] = $data["online"];
+       sendMSG("ok","200",$ret);
+
     }
 
 
@@ -362,7 +362,7 @@ class Phone extends Controller
         $status = $friends->insertFriends($data);
         //添加到聊天房间
         $usergroud = [];
-        $usergroud["name"] = $userinfo["username"];
+        $usergroud["name"] = empty($userinfo["username"])?$userinfo["nickname"]:$userinfo["username"];
         $usergroud["room_key"] = md5($data["uid"]."_".$userinfo["id"]);
         $usergroud["root_id"] = 1;
         $usergroud["send_user"] = $data["uid"];
@@ -378,9 +378,9 @@ class Phone extends Controller
             $users = $user->findUserByid($data["uid"]);
             $log = [];
             $log["uid"] = $users["id"];
-            $log["username"] = $users["username"];
+            $log["username"] = empty($users["username"])?$users["nickname"]:$users["username"];
             $log["type"] = 3;//1登录,2登出,3修改信息,4绑定(微信，qq，支付宝),5注册
-            $log["content"] = "添加".$userinfo["username"]."为好友";
+            $log["content"] = "添加".$userinfo["nickname"]."为好友";
             $log["create_time"] = time();
             $log["create_ip"] = getIP();
             $userLog = new \app\index\model\UserLog();
@@ -433,8 +433,8 @@ class Phone extends Controller
         if($uid == 0 || !is_numeric($uid)){
             sendMSG("会员信息错误","10417");
         }
-        $users= new \app\index\model\User();
-        $userinfo= $users->findUserByid($uid);
+        $users_get= new \app\index\model\User();
+        $userinfo= $users_get->findUserByid($uid);
         if(empty($userinfo)){
             sendMSG("会员信息错误","10418");
         }
@@ -459,7 +459,8 @@ class Phone extends Controller
         if(!empty($bday)){
             $user['bday'] =$bday;
         }
-        $isok = $users->updateUser($user);
+
+        $isok = $users_get->updateUser($user);
         if($isok){
             $old = [];
             if(!empty($city)){
@@ -481,7 +482,7 @@ class Phone extends Controller
             if(!empty($bday)){
                 $old['bday'] =$userinfo["bday"];
             }
-            $users = $user->findUserByid($uid);
+            $users = $users_get->findUserByid($uid);
             $log = [];
             $log["uid"] = $users["id"];
             $log["username"] = $users["username"];
@@ -694,6 +695,12 @@ class Phone extends Controller
         sendMSG("ok","200",$bushu);
     }
 
+    /**
+     * 获取任务列表
+     * input  uid int 用户id
+     * return data array 任务列表
+     */
+
     private function  Ajax_getTask(){
         $uid = input("uid",0);
         if(empty($uid) || !is_numeric($uid)){
@@ -710,6 +717,13 @@ class Phone extends Controller
         sendMSG("ok","200",$task);
     }
 
+    /**
+     * 进行任务
+     * input uid int 用户id
+     * input task_id 任务id
+     * return bool  200成功 其他失败或已完成
+     *
+     */
     private function  Ajax_doTask(){
         $uid = input("uid",0);
         $task_id = input("task_id",0);
@@ -735,19 +749,25 @@ class Phone extends Controller
                 sendMSG("您的等级不足!","10448");
             }
         }
-        $taskinfo["done_count"] = 0;
-        if($taskinfo["count"] > 0){
+        $taskinfo["done_count"] = 1;//来到这里是，任务记这次1
+        if($taskinfo["count"] > 0){//如果有任务完成次数限制，检查完成次数
             $task_logs =  new \app\index\model\TaskLog();
-            $taskLogs = $task_logs->getTaskLog($uid,$task_id);
+            $taskLogs = $task_logs->getTaskLog($uid,$taskinfo);
             $total_log = count($taskLogs);
-            if($total_log > $taskinfo["count"]){
-                sendMSG("今日的任务已经完成","10449");
+            if($total_log >= $taskinfo["count"]){
+                sendMSG("您的任务已经完成","10449");
             }
-            $taskinfo["done_count"] = empty($total_log) ? 0 : $total_log;//将已完成的任务次数存入任务信息中
+            $taskinfo["done_count"] = $taskinfo["done_count"]+$total_log;//将已完成的任务次数存入任务信息中
         }
         $tasks= new \app\index\model\TaskLog();
         $isok = $tasks->addTaskLog($userinfo,$taskinfo);
-
+        if($isok){
+            sendMSG("ok","200");
+        }else{
+            sendMSG("发生未知错误，请联系客服!","10450");
+        }
+    }
+    private function  Ajax_taskLogs(){
 
     }
 
