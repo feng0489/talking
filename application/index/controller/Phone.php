@@ -749,7 +749,6 @@ class Phone extends Controller
                 sendMSG("您的等级不足!","10448");
             }
         }
-
         $task_logs =  new \app\index\model\TaskLog();
         //检测是否上限
         if($taskinfo["count"] > 0){//如果有任务完成次数限制，检查完成次数
@@ -761,8 +760,8 @@ class Phone extends Controller
         //计算完成次数
         $mustdo = $task_logs->getHadDoLog($uid,$taskinfo);
         $taskinfo["done_count"] = $mustdo+1;//加上本次请求的次数
-        $tasks= new \app\index\model\TaskLog();
-        $isok = $tasks->addTaskLog($userinfo,$taskinfo);
+        //写入任务记录表
+        $isok = $task_logs->addTaskLog($userinfo,$taskinfo);
         if($isok){
             sendMSG("ok","200");
         }else{
@@ -772,9 +771,12 @@ class Phone extends Controller
     private function  Ajax_taskLogs(){
         $uid = input("uid",0);
         $task_id = input("task_id",0);
-        if(empty($uid) || !is_numeric($uid) || empty($task_id) || !is_numeric($task_id)){
+        if(empty($uid) || !is_numeric($uid)){
             sendMSG("错误的信息!","10442");
         }
+        $task_logs =  new \app\index\model\TaskLog();
+        $taskLog = $task_logs->getTaskLogList($uid,$task_id);
+        sendMSG("ok","200",$taskLog);
     }
 
 

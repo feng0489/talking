@@ -71,6 +71,18 @@ class TaskLog extends Model
         return $task;
     }
 
+    public function getTaskLogList($uid=0,$task_id = 0){
+        $where = [];
+        $where["uid"] = $uid;
+        if($task_id>0){
+            $where["task_id"] = $task_id;
+        }
+        $task = db("user_task_log")
+            ->where($where)
+            ->select();
+        return $task;
+    }
+
 
 
   public function addTaskLog($user,$task){
