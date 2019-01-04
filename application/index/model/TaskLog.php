@@ -17,31 +17,67 @@ class TaskLog extends Model
 {
 
 
+    /**
+     * 计算已完成的任务
+     * @param $uid  用户id
+     * @param array $task  任务信息
+     * @return array
+     */
+      public function getTaskLog($uid,$task=[]){
+          if($task["datetime"]>0 && $task["count"]>0){
+              $startTime = getLastTime($task["datetime"]);
+              $endtime = time();
+              $task = db("user_task_log")
+                  ->where("uid",$uid)
+                  ->where("task_id",$task["id"])
+                  ->where("time",">=",$startTime)
+                  ->where("time","<=",$endtime)
+                  ->where("status",0)
+                  ->count("id");
+          }else{
+              $task = db("user_task_log")
+                  ->where("uid",$uid)
+                  ->where("task_id",$task["id"])
+                  ->where("status",0)
+                  ->count("id");
+          }
 
-  public function getTaskLog($uid,$task=[]){
-      if($task["datetime"]>0 && $task["count"]>0){
-          $startTime = getLastTime($task["datetime"]);
-          $endtime = time();
-          $task = db("user_task_log")
-              ->where("uid",$uid)
-              ->where("task_id",$task["id"])
-              ->where("time",">=",$startTime)
-              ->where("time","<=",$endtime)
-              ->select();
-      }else{
-          $task = db("user_task_log")
-              ->where("uid",$uid)
-              ->where("task_id",$task["id"])
-              ->select();
+          return $task;
       }
 
-      return $task;
-  }
+    /**
+     * 获取任务记录数
+     * @param $uid 用户id
+     * @param array $task 任务信息
+     * @return array
+     */
+    public function getHadDoLog($uid,$task=[]){
+        if($task["datetime"]>0 && $task["count"]>0){
+            $startTime = getLastTime($task["datetime"]);
+            $endtime = time();
+            $task = db("user_task_log")
+                ->where("uid",$uid)
+                ->where("task_id",$task["id"])
+                ->where("time",">=",$startTime)
+                ->where("time","<=",$endtime)
+                ->count("id");
+        }else{
+            $task = db("user_task_log")
+                ->where("uid",$uid)
+                ->where("task_id",$task["id"])
+                ->count("id");
+        }
+
+        return $task;
+    }
+
+
 
   public function addTaskLog($user,$task){
       if(empty($user) || empty($task)){
           return false;
       }
+
 
       if( $task["done_count"]%$task["mustdo"] != 0){
           $order = CreateOrder($user["id"],1014);//1014推广id
@@ -102,7 +138,7 @@ class TaskLog extends Model
           $trad["kouchu"] = 0;
           $trad["shiji_money"] = $money;
           $trad["time"] = time();
-          $trad["index_remark"] = "任务奖励";
+          $trad["index_remark"] = "任务奖励:".$task["title"];
           $trad["admin_remark"] = "";
           $addtradLog = db($trad_table)->insertGetId($trad);
           if($addtradLog <= 0){
@@ -135,7 +171,7 @@ class TaskLog extends Model
               $trad["kouchu"] = 0;
               $trad["shiji_money"] = $level["renwu"];
               $trad["time"] = time();
-              $trad["index_remark"] = "任务额外奖励";
+              $trad["index_remark"] = "任务额外奖励:".$task["title"];
               $trad["admin_remark"] = "";
               $addlog2 = db($trad_table)->insertGetId($trad);
               if($addlog2 <= 0){

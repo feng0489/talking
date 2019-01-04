@@ -82,9 +82,9 @@ function getLastTime($times= 0)
     $itme = $times-1;
     $star=date("Y-m-d",strtotime("-{$itme} day"))." 0:0:0";
     $data["star"]=strtotime($star);
-    $end=date("Y-m-d",strtotime("-{$itme} day"))." 23:59:59";
-    $data["end"]=strtotime($end);
-    return $data;
+//    $end=date("Y-m-d",strtotime("-{$itme} day"))." 23:59:59";
+//    $data["end"]=strtotime($end);
+    return $data["star"];
 }
 
 function trimall($str){
