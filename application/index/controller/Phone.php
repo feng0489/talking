@@ -727,17 +727,26 @@ class Phone extends Controller
         if(empty($taskinfo)){
             sendMSG("该任务已经不存在!","10446");
         }
-        if($taskinfo["status"]){
+        if($taskinfo["status"] == 1){
             sendMSG("该任务未开启!","10447");
         }
+        if($taskinfo["level"]>0){
+            if($taskinfo["level"]>$userinfo["level"]){
+                sendMSG("您的等级不足!","10448");
+            }
+        }
+        $taskinfo["done_count"] = 0;
         if($taskinfo["count"] > 0){
             $task_logs =  new \app\index\model\TaskLog();
             $taskLogs = $task_logs->getTaskLog($uid,$task_id);
             $total_log = count($taskLogs);
             if($total_log > $taskinfo["count"]){
-                sendMSG("今日的任务已经完成","10448");
+                sendMSG("今日的任务已经完成","10449");
             }
+            $taskinfo["done_count"] = empty($total_log) ? 0 : $total_log;//将已完成的任务次数存入任务信息中
         }
+        $tasks= new \app\index\model\TaskLog();
+        $isok = $tasks->addTaskLog($userinfo,$taskinfo);
 
 
     }

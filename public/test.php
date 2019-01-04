@@ -32,8 +32,14 @@
 //
 //echo "耗时".round($t2-$t1,3)."秒";
 
-$type = mt_rand(1000,9999);
-function CreateOrder($uid, $type=1,$sub_type=1) {
-    return sprintf("%s%02d%02d%02d", date("ymdHis"), $uid, $sub_type,$type);
+function num($number)
+{
+    if($number%2 == 0)
+    {
+        return "ok";
+    }else{
+        return "false";
+    }
 }
-echo CreateOrder(1024,$type,1011);
+
+echo num(0);
