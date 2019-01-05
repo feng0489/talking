@@ -87,6 +87,14 @@ function getLastTime($times= 0)
     return $data["star"];
 }
 
+function checkDateTime($date= ""){
+    if(date('Y-m-d H:i:s',strtotime($date)) == $date){
+        return true;
+    }else{
+        return false;
+    }
+}
+
 function trimall($str){
      $qian=array(" ","　","\\t","\\n","\\r");
      return str_replace($qian, '', $str);
