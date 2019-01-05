@@ -400,16 +400,10 @@ class Phone extends Controller
         if(empty($uid) || !is_numeric($uid)){
             sendMSG("数据错误","10410");
         }
-        $key = "friends_".$uid;
-        $redis = new Redis();
-        $data = $redis->get($key);
-        if(empty($data)){
-            $friends= new \app\index\model\Userfriends();
-            $data = $friends->findFriends($uid);
-            if(!empty($data)){
-                $redis->set($key,$data,0);
-            }
-        }
+
+        $friends= new \app\index\model\Userfriends();
+        $data = $friends->findFriends($uid);
+
         if(!empty($data)){
             sendMSG("ok","200",$data);
         }else{

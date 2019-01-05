@@ -53,7 +53,7 @@ class Userfriends extends Model
         if(empty($friends)){
             //获取好友信息（id,状态，备注，头像）
             $friends = db("user_friends")
-                ->field("uf.fid,uf.status,uf.remark,u.username,u.online,u.status,u.photo,uf.createtime")
+                ->field("uf.fid,uf.status,uf.remark,u.username,u.online,u.nickname,u.status,u.photo,uf.createtime")
                 ->alias('uf')
                 ->join('user u','uf.fid = u.id ')
                 ->where(array("uid"=>$uid))
