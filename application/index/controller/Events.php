@@ -46,21 +46,10 @@ class Events
                // {"type":"join","client_name":"qweqwe","uid":"1","fid":"2","room_id":1}
                 // 把房间号昵称放到session中
                 $room_id = $message_data['room_id'];
-                $client_name = $message_data['uid'];
-                $room_key =  $message_data['room_key'];
-                $_SESSION['room_id'] = $room_id;
+                $client_name = "qweqwe";
+                $_SESSION['room_id'] =  $message_data['room_id'];
                 $_SESSION['client_name'] = $client_name;
 
-                //进入房间后激活房间
-                if($message_data['isopen'] == 0 ){//为0时开启
-                    $data = [];
-                    $data["room_key"] = $message_data['room_key'];
-                    $data["sender"] = $message_data['uid'];
-                    $data["accepter"] = $message_data['fid'];
-                    $data["isopen"] = 1;
-                    $uroom = new \app\index\model\UserRoom();
-                    $uroom->updateOpen($data);
-                }
                 // 获取房间内所有用户列表
                 $clients_list = Gateway::getClientSessionsByGroup($room_id);
                 foreach($clients_list as $tmp_client_id=>$item)
@@ -75,9 +64,6 @@ class Events
                     'client_id'=>$client_id,
                     'client_name'=>htmlspecialchars($client_name),
                     'time'=>date('Y-m-d H:i:s'),
-                    'accept_user'=> $message_data['fid'],
-                    'send_user'=> $message_data['uid'],
-                    'key'=>$room_key,
                     'isopen'=>1,
                 );
                 Gateway::sendToGroup($room_id, json_encode($new_message));
@@ -91,44 +77,16 @@ class Events
             // 客户端发言 message: {type:say, to_client_id:xx, content:xx}
             case 'say':
                 // 非法请求
-                if(!isset($_SESSION['room_id']))
-                {
-                    throw new \Exception("\$_SESSION['room_id'] not set. client_ip:{$_SERVER['REMOTE_ADDR']}");
-                }
-                $room_id = $_SESSION['room_id'];
-                $client_name = $_SESSION['client_name'];
-echo "say:".json_encode($message_data);
-                $data = [];
-                $data["sender"] = $message_data['sender'];
-                $data["accepter"] = $message_data['accepter'];
-                $data["key"] = $message_data['key'];
-                $data["isopen"] = $message_data['isopen'];
-                $data["content"] = $message_data['content'];
-                $data["root_id"] = $room_id;
-                //将信息存入数据库
-                $msg = new \app\index\model\Message();
-                $isok = $msg->saveMsg($data);
-                if($isok){
-                    $new_message = array(
-                        'type'=>'say',
-                        'sender'=>$data["sender"],
-                        'accepter' =>$data["accepter"],
-                        'key' =>$data["key"],
-                        'isopen' => "1",
-                        'content'=>nl2br(htmlspecialchars(trimall($message_data['content']))),
-                        'time'=>date('Y-m-d H:i:s'),
-                    );
-                }else{
-                    $new_message = array(
-                        'type'=>'say',
-                        'sender'=>$data["sender"],
-                        'accepter' =>$data["accepter"],
-                        'key' =>$data["key"],
-                        'isopen' => "1",
-                        'content'=>"系统出错啦!",
-                        'time'=>date('Y-m-d H:i:s'),
-                    );
-                }
+                $_SESSION['room_id'] = 1;
+                $_SESSION['client_name'] = "qweqwe";
+                $room_id = 1;
+
+                echo "say:".json_encode($message_data);
+                $new_message = array(
+                    'type'=>'say',
+                    'content'=>nl2br(htmlspecialchars(trimall($message_data['content']))),
+                    'time'=>date('Y-m-d H:i:s'),
+                );
 
                 return Gateway::sendToGroup($room_id ,json_encode($new_message));
         }
